@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "testmodule"
+version = "0.1.0"
+description = "Testmodule description"
+readme = "README.md"
+requires-python = ">=3.8"
+
+# Exposes: python -m testmodule
+[project.scripts]
+testmodule = "testmodule.__main__:main"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.setuptools.package-data]
+"testmodule" = ["*.yml"]

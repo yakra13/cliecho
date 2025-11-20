@@ -1,0 +1,24 @@
+description: "some description"
+arguments:
+    required:
+        username:
+            description: "The username of the target"
+            default: "default_username"
+            help: "The username of the desired target"
+            shortname: "u"
+        
+        password:
+            description: "The password of the target"
+            help: "The password of the desired target"
+            shortname: "p"
+
+    optional:
+        optionalarg:
+            description: "Optional example"
+            help: "help info"
+            shortname: "c"
+
+        verbose:
+            description: "Flag to toggle DEBUG output"
+            help: "Turn DEBUG output ON"
+            shortname: "v"
