@@ -4,4 +4,5 @@ class TestModule(ModuleBase):
 
     def run(self):
         # TODO: module implementation
-        print(self.module_args.items())
+        # print(self.module_args.items())
+        pass
