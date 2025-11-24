@@ -1,7 +1,7 @@
 from typing import Optional, Type
 from module_base import ModuleBase
 from core.module_loader import ModuleLoader
-from output_formatter import format_module_settings
+from output_formatter import format_module_settings, format_show_modules
 from core.exceptions import NoModuleSelectedError
 
 class Dispatcher:
@@ -13,6 +13,14 @@ class Dispatcher:
         # self.module_class = module_class
         # self.instance = module_class()
 
+        self._global_commands = {
+            "show": self._cmd_show,
+            # "search": self.cmd_search,
+            # "use": self.cmd_use,
+            # "describe": self.cmd_describe,
+            # "back": self.cmd_back,
+        }
+
         self._module_commands = {
             "set": self._cmd_set_param,
             # "unset": self._cmd_unset_param,
@@ -21,6 +29,18 @@ class Dispatcher:
             # "save": self.cmd_save,
             # "load": self.cmd_load,
         }
+    
+    def _cmd_show(self, args: list[str]) -> str:
+        modules = self._module_loader.discover()
+
+        return format_show_modules(modules)
+    
+    def _cmd_use(self, args: list[str]) -> str:
+        try:
+            self.set_current_module(args[0])
+        except:
+            pass
+        return ""
     
     def _cmd_set_param(self, args: list[str]) -> str:
         module: Optional[ModuleBase] = self.current_module()
