@@ -1,3 +1,4 @@
+name: "module_name"
 description: "some description"
 arguments:
     required:
@@ -6,19 +7,23 @@ arguments:
             default: "default_username"
             help: "The username of the desired target"
             shortname: "u"
+            type: "str"
         
         password:
             description: "The password of the target"
             help: "The password of the desired target"
             shortname: "p"
+            type: "str"
 
     optional:
         optionalarg:
             description: "Optional example"
             help: "help info"
             shortname: "c"
+            type: "int"
 
         verbose:
             description: "Flag to toggle DEBUG output"
             help: "Turn DEBUG output ON"
             shortname: "v"
+            type: "bool"

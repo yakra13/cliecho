@@ -17,13 +17,12 @@ mod.run()
 
 def main() -> None:
     # 
-    # loader: ModuleLoader   = ModuleLoader(MODULES_PATH)
-    # dispatcher: Dispatcher = Dispatcher()
-    # cli = CLI()
+    loader: ModuleLoader   = ModuleLoader(MODULES_PATH)
+    dispatcher: Dispatcher = Dispatcher(loader)
+    cli = CLI(dispatcher)
     # cli.SetVerbosity()
     # cli.SetFormat()
-
-    pass
+    cli.run()
 
 if __name__ == "__main__":
     main()

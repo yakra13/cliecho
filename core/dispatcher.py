@@ -12,7 +12,30 @@ class Dispatcher:
         self._module_loader: ModuleLoader = module_loader
         # self.module_class = module_class
         # self.instance = module_class()
+
+        self._module_commands = {
+            "set": self._cmd_set_param,
+            # "unset": self._cmd_unset_param,
+            # "run": self.cmd_run,
+            # "info": self.cmd_info,
+            # "save": self.cmd_save,
+            # "load": self.cmd_load,
+        }
     
+    def _cmd_set_param(self, args: list[str]) -> str:
+        module: Optional[ModuleBase] = self.current_module()
+        if not module:
+            raise NoModuleSelectedError()
+        
+        # TODO: extract param, and value(s)
+        # validate values
+        try:
+            module.set_param('', '') # TODO
+        except (KeyError, ValueError) as e:
+            return "Error string" # TODO
+
+        return f"Set {args[0]} to '{args[1]}'" # TODO
+
     def set_current_module(self, module_name: str) -> None:
         # USE MODULE
         if not self._loaded_modules.get(module_name):
@@ -28,6 +51,9 @@ class Dispatcher:
         if self._current_module is not None:
             # TODO: unload module if necessary
             self._current_module = self._loaded_modules[module_name]
+    
+    def current_module(self) -> Optional[ModuleBase]:
+        return self._current_module
 
     def print_current_module_settings(self) -> str:
         # Get current module args and current arg settings
@@ -35,4 +61,6 @@ class Dispatcher:
             raise NoModuleSelectedError()
         
         return format_module_settings(self._current_module.get_current_settings())
-        
+    
+    def handle_command(self, cmd: str, args: list[str]) -> str:
+        return self._module_commands[cmd](args)

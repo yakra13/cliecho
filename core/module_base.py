@@ -1,7 +1,7 @@
 from importlib import resources
 import yaml
 
-from typing import Optional, Union, List, Dict, Tuple, Any, final
+from typing import Optional, Union, List, Dict, Tuple, Type, Any, final
 from dataclasses import dataclass
 
 @dataclass
@@ -11,10 +11,12 @@ class ModuleArg:
     default_value: Optional[Union[str, List[str]]] = None
     help: Optional[str] = None
     shortname: Optional[str] = None
+    value_type: Type = str
 
 class ModuleBase:
     _metadata = None
     _module_args: Dict[str, ModuleArg] = {}
+    _name: str = ''
     _description: str = ''
     _options: Dict[str, Any] = {}
 
@@ -27,11 +29,12 @@ class ModuleBase:
             raise RuntimeError(f"Cannot locate config.yml for module '{pkg}'") from e
 
         with cfg_path.open("r", encoding="utf-8") as f:
-            self.metadata = yaml.safe_load(f)
+            self._metadata = yaml.safe_load(f)
 
-        self.description = self.metadata["description"]
+        self._name = self._metadata["name"]
+        self._description = self._metadata["description"]
 
-        args = self.metadata["arguments"]
+        args = self._metadata["arguments"]
 
         # Parse required args
         for name, spec in args.get("required", {}).items():
@@ -58,13 +61,23 @@ class ModuleBase:
             # Assign any args with default values
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
+    @property
+    def name(self) -> str:
+        return self._name
+    
+    @property
+    def description(self) -> str:
+        return self._description
 
     @final
-    def set_param(self, key, val):
+    def set_param(self, key: str, val: str):
         if key not in self._module_args:
-            raise ValueError(f"Unknown option {key}")
+            raise KeyError(f"Unknown option {key}")
         
-        self._options[key] = val
+        try:
+            self._options[key] = self._module_args[key].value_type(val)
+        except:
+            raise ValueError()
 
     @final    
     def get_param(self, key):
@@ -72,7 +85,7 @@ class ModuleBase:
             raise KeyError(f"Unknown option '{key}'")
         
         return self._options.get(key)
-    
+
     @final
     def get_current_settings(self) -> Dict[str, Tuple[ModuleArg, Any]]:
         settings: Dict[str, Tuple[ModuleArg, Any]] = {}
