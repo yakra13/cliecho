@@ -1,6 +1,6 @@
 from importlib import resources
 import yaml
-
+from queue import Queue
 from typing import Optional, Union, List, Dict, Tuple, Type, Any, final
 from dataclasses import dataclass
 
@@ -14,13 +14,14 @@ class ModuleArg:
     value_type: Type = str
 
 class ModuleBase:
-    _metadata = None
-    _module_args: Dict[str, ModuleArg] = {}
-    _name: str = ''
-    _description: str = ''
-    _options: Dict[str, Any] = {}
-
     def __init__(self):
+        self._metadata = None
+        self._module_args: Dict[str, ModuleArg] = {}
+        self._name: str = ''
+        self._description: str = ''
+        self._options: Dict[str, Any] = {}
+        self._progress_queue: Queue
+
         pkg = self.__class__.__module__   # "modules.modulename"
 
         try:
@@ -61,6 +62,7 @@ class ModuleBase:
             # Assign any args with default values
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
+
     @property
     def name(self) -> str:
         return self._name
@@ -68,6 +70,14 @@ class ModuleBase:
     @property
     def description(self) -> str:
         return self._description
+
+    @property
+    def progress_queue(self) -> Queue:
+        return self._progress_queue
+    
+    @progress_queue.setter
+    def progress_queue(self, queue: Queue) -> None:
+        self._progress_queue = queue
 
     @final
     def set_param(self, key: str, val: str):
