@@ -1,8 +1,8 @@
-from importlib import resources
 import yaml
+from dataclasses import dataclass
+from importlib import resources
 from queue import Queue
 from typing import Optional, Union, List, Dict, Tuple, Type, Any, final
-from dataclasses import dataclass
 
 @dataclass
 class ModuleArg:

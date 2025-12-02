@@ -1,10 +1,11 @@
 import sys
 import importlib
-from types import ModuleType
 import zipfile
+from types import ModuleType
 from pathlib import Path
 from typing import Type
-from module_base import ModuleBase
+
+from core.module_base import ModuleBase
 
 MODULE_DIR = Path("modules")
 
