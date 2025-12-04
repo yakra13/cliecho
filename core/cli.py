@@ -6,7 +6,7 @@ from typing import Optional
 
 from core.module_loader import ModuleLoader
 from core.dispatcher import Dispatcher
-from core.module_base import ModuleBase
+from shared.module_base import ModuleBase
 
 class CLI:
     def __init__(self, dispatcher: Dispatcher):
@@ -182,3 +182,26 @@ class CLI:
             # > load "label"
             # > back
         pass
+
+
+# example
+'''
+dispatcher = Dispatcher()
+
+cli = CLI(dispatcher)
+
+curses.wrapper(cli.run)
+
+
+
+def main():
+    dispatcher = Dispatcher()
+    dispatcher.register_module("mod", ExampleModule())
+
+    if "--curses" in sys.argv:
+        curses_cli = CursesCLI(dispatcher)
+        curses.wrapper(curses_cli.run)
+    else:
+        std_cli = StandardCLI(dispatcher)
+        std_cli.run()
+'''

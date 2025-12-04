@@ -5,7 +5,7 @@ from types import ModuleType
 from pathlib import Path
 from typing import Type
 
-from core.module_base import ModuleBase
+from shared.module_base import ModuleBase
 
 MODULE_DIR = Path("modules")
 

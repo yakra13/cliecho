@@ -3,7 +3,7 @@ from typing import Final
 
 from core.cli import CLI
 from core.dispatcher import Dispatcher
-from core.module_base import ModuleBase
+from shared.module_base import ModuleBase
 from core.module_loader import ModuleLoader
 
 

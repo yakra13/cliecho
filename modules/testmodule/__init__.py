@@ -1,4 +1,4 @@
-from core.module_base import ModuleBase
+from shared.module_base import ModuleBase
 
 class TestModule(ModuleBase):
 

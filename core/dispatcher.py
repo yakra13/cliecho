@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from queue import Queue
 from typing import Optional, Type
 
-from core.module_base import ModuleBase
+from shared.module_base import ModuleBase
 from core.exceptions import NoModuleSelectedError
 from core.module_loader import ModuleLoader
 from core.output_formatter import format_module_settings, format_show_modules
