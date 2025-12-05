@@ -20,7 +20,8 @@ class ModuleBase:
         self._name: str = ''
         self._description: str = ''
         self._options: Dict[str, Any] = {}
-        self._progress_queue: Queue
+        # If no Queue is provided by the core then logging is handled internally
+        self._message_queue: Optional[Queue] = None
 
         pkg = self.__class__.__module__   # "modules.modulename"
 
@@ -72,12 +73,16 @@ class ModuleBase:
         return self._description
 
     @property
-    def progress_queue(self) -> Queue:
-        return self._progress_queue
+    def options(self) -> Dict[str, ModuleArg]:
+        return self._module_args
+
+    @property
+    def message_queue(self) -> Optional[Queue]:
+        return self._message_queue
     
-    @progress_queue.setter
-    def progress_queue(self, queue: Queue) -> None:
-        self._progress_queue = queue
+    @message_queue.setter
+    def message_queue(self, queue: Queue) -> None:
+        self._message_queue = queue
 
     @final
     def set_param(self, key: str, val: str):
@@ -116,6 +121,12 @@ class ModuleBase:
         if missing_args:
             raise ValueError(f"Missing required options: {', '.join(missing_args)}")
 
+    def _log(self, message: str):
+        if self._message_queue:
+            self._message_queue.put(message)
+            return
+        
+        # TODO: there is no core present to pass messages to so we will handle logging
 
     def run(self):
         # TODO: perform run logging

@@ -3,15 +3,15 @@ import importlib
 import zipfile
 from types import ModuleType
 from pathlib import Path
-from typing import Type
+from typing import Type, Final
 
 from shared.module_base import ModuleBase
 
-MODULE_DIR = Path("modules")
+MODULE_DIR: Final[Path] = Path("modules")
 
 class ModuleLoader:
-    def __init__(self, modules_path: Path):
-        self.modules_path = modules_path
+    def __init__(self):
+        self.modules_path: Path = MODULE_DIR
         self.loaded_modules = {}
 
     def discover(self):

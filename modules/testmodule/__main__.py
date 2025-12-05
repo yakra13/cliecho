@@ -7,6 +7,8 @@ def main():
 
     # mod.validate()
 
+    # modify Queue to act as logger
+    
     mod.run()
 
 if __name__ == '__main__':

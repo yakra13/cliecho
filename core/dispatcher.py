@@ -17,14 +17,21 @@ class Job:
     queue: Queue
 
 class Dispatcher:
-    _loaded_modules: dict[str, ModuleBase] = {}
-    _current_module: Optional[ModuleBase] = None
+    """
+    Docstring for Dispatcher
+    """
+    _instance = None
 
-    def __init__(self, module_loader: ModuleLoader):
-        self._module_loader: ModuleLoader = module_loader
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        self._loaded_modules: dict[str, ModuleBase] = {}
+        self._current_module: Optional[ModuleBase] = None
+        self._module_loader: ModuleLoader = ModuleLoader()
         self._jobs: dict[str, Job] = {}
-        # self.module_class = module_class
-        # self.instance = module_class()
 
         self._global_commands = {
             "show": self._cmd_show,
@@ -51,7 +58,7 @@ class Dispatcher:
 
         job_id: str = str(uuid.uuid4())
         progress_queue: Queue = Queue()
-        self._current_module.progress_queue = progress_queue
+        self._current_module.message_queue = progress_queue
 
         t = threading.Thread(target=self._current_module.run)
 
