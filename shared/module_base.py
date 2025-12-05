@@ -5,6 +5,11 @@ from queue import Queue
 from typing import Optional, Union, List, Dict, Tuple, Type, Any, final
 
 @dataclass
+class Event:
+    event_type: str
+    data: str
+
+@dataclass
 class ModuleArg:
     description: str
     required: bool = False    
@@ -21,7 +26,7 @@ class ModuleBase:
         self._description: str = ''
         self._options: Dict[str, Any] = {}
         # If no Queue is provided by the core then logging is handled internally
-        self._message_queue: Optional[Queue] = None
+        self._message_queue: Optional[Queue[Event]] = None
 
         pkg = self.__class__.__module__   # "modules.modulename"
 

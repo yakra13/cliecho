@@ -3,7 +3,7 @@ import shlex
 from typing import Optional
 
 # from core.module_loader import ModuleLoader
-from core.dispatcher import Dispatcher
+from core.dispatcher import Dispatcher, Job
 from shared.module_base import ModuleBase
 
 class InterfaceManager:
@@ -48,6 +48,11 @@ class InterfaceManager:
         #     curses.wrapper(self._curses_interface)
         # return
         while True:
+            for id, job in self._dispatcher._jobs.items():
+                if job.queue.empty():
+                    break
+                item = job.queue.get()
+                job.queue.task_done()
             try:
                 user_input = input(self._get_prompt())
             except (EOFError, KeyboardInterrupt):
