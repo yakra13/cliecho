@@ -1,28 +1,31 @@
+"""
+LogManager docstring
+"""
 import getpass
 import socket
 from datetime import datetime, timezone
-from enum import Enum, auto
-from dispatcher import Dispatcher
 from typing import Any
+from shared.log_types import LogLevel, Event
+from core.dispatcher import Dispatcher
 
-class LogLevel(Enum):
-    INFO = auto()
-    WARNING = auto()
-    ERROR = auto()
-    # TODO: Special Log levels
 
-class Logger:
+
+class LogManager:
+    """
+    Docstring for Logger
+    """
     _instance = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         self._dispatcher = Dispatcher()
 
     def _log(self, log_level: LogLevel, message: str):
+        event: Event = Event(message=message, log_level=log_level)
         log_entry: dict = {}
         log_entry["timestamp"] = datetime.now(timezone.utc)
         log_entry["type"] = log_level.name
@@ -40,7 +43,7 @@ class Logger:
             for name, data in current_module.get_current_settings().items():
                 # data contains a tuple [ModuleArg, Any]
                 module_settings[name] = data[1]
-        
+
             log_entry["module"]["options"] = module_settings
 
         log_entry["message"] = message

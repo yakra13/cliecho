@@ -1,16 +1,25 @@
+"""
+Docstring for core.dispatcher
+"""
 import threading
 import uuid
 from dataclasses import dataclass
 from queue import Queue
 from typing import Optional, Type
 
-from shared.module_base import ModuleBase
 from core.exceptions import NoModuleSelectedError
 from core.module_loader import ModuleLoader
 from core.output_formatter import format_module_settings, format_show_modules
 
+from shared.module_base import ModuleBase
+from shared.module_context import ModuleContext
+from shared.module_logger import module_event_queue, module_logging_context
+
 @dataclass
 class Job:
+    """
+    Docstring for Job
+    """
     id: str # uuid4
     thread: threading.Thread
     module: ModuleBase
@@ -50,47 +59,55 @@ class Dispatcher:
             # "save": self.cmd_save,
             # "load": self.cmd_load,
         }
-    
+
     def _cmd_run(self) -> str:
-        if self._current_module is None:
+        if self.current_module() is None:
             raise NoModuleSelectedError()
             # return # TODO
 
         job_id: str = str(uuid.uuid4())
-        progress_queue: Queue = Queue()
-        self._current_module.message_queue = progress_queue
+        event_queue: Queue = Queue()
+        module_context: ModuleContext = ModuleContext(
+            name=self._current_module.name,
+            options=self._current_module.get_current_settings()
+        )
 
-        t = threading.Thread(target=self._current_module.run)
+        def run_module_thread():
+            with module_event_queue(event_queue), module_logging_context(module_context):
+                self._current_module.run()
+        # self._current_module.message_queue = progress_queue
 
-        self._jobs[job_id] = Job(job_id, t, self._current_module, progress_queue)
+        t = threading.Thread(target=run_module_thread)
+
+        self._jobs[job_id] = Job(job_id, t, self._current_module, event_queue)
 
         t.start()
 
         return job_id
-    
+
     def _cmd_show(self, args: list[str]) -> str:
         modules = self._module_loader.discover()
 
         return format_show_modules(modules)
-    
+
     def _cmd_use(self, args: list[str]) -> str:
         try:
             self.set_current_module(args[0])
         except:
             pass
         return ""
-    
+
     def _cmd_set_param(self, args: list[str]) -> str:
         module: Optional[ModuleBase] = self.current_module()
         if not module:
             raise NoModuleSelectedError()
-        
+
         # TODO: extract param, and value(s)
         # validate values
         try:
             module.set_param('', '') # TODO
         except (KeyError, ValueError) as e:
-            return "Error string" # TODO
+            return f"Error string {e}" # TODO
 
         return f"Set {args[0]} to '{args[1]}'" # TODO
 
@@ -105,11 +122,11 @@ class Dispatcher:
                 # TODO: log and inform user selected module could not be loaded
                 # Pass up config.yml not found
                 pass
-        
+   
         if self._current_module is not None:
             # TODO: unload module if necessary
             self._current_module = self._loaded_modules[module_name]
-    
+
     def current_module(self) -> Optional[ModuleBase]:
         return self._current_module
 
@@ -117,8 +134,8 @@ class Dispatcher:
         # Get current module args and current arg settings
         if self._current_module is None:
             raise NoModuleSelectedError()
-        
+
         return format_module_settings(self._current_module.get_current_settings())
-    
+
     def handle_command(self, cmd: str, args: list[str]) -> str:
         return self._module_commands[cmd](args)
