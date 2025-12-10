@@ -1,6 +1,13 @@
+"""
+"""
+# try:
+import readline
+# except ImportError:
+#     # Windows
+#     import pyreadline3 as readline
 import shlex
 # from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
 
 # from core.module_loader import ModuleLoader
 from core.dispatcher import Dispatcher, Job
@@ -12,13 +19,6 @@ class InterfaceManager:
     """
     _instance = None
 
-    command_tree = {
-        "show": {
-            "modules": {},
-            "options": {"requires_module": True}
-        },
-    }
-
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -29,52 +29,53 @@ class InterfaceManager:
         self._interactive: bool = True
 
     def _get_prompt(self) -> str:
-        module: Optional[ModuleBase] = self._dispatcher.current_module()
+        module: Optional[ModuleBase] = self._dispatcher.current_module
         return f'{module.name}> ' if module else '> '
 
-    def _parse_input(self, text: str) -> list[str]:
+    def _parse_input(self, text: str) -> List[str]:
         try:
             return shlex.split(text)
         except ValueError:
             print("[-] Input parse error.")
             return []
 
-    def _show_help(self, args: list[str]) -> str:
+    def _show_help(self, args: List[str]) -> str:
         return ''
 
     def run(self):
+        
         # if self._interactive:
             
         #     curses.wrapper(self._curses_interface)
         # return
-        while True:
-            for id, job in self._dispatcher._jobs.items():
-                if job.queue.empty():
-                    break
-                item = job.queue.get()
-                job.queue.task_done()
-            try:
-                user_input = input(self._get_prompt())
-            except (EOFError, KeyboardInterrupt):
-                print()
-                return
+        # while True:
+        #     for id, job in self._dispatcher._jobs.items():
+        #         if job.queue.empty():
+        #             break
+        #         item = job.queue.get()
+        #         job.queue.task_done()
+        #     try:
+        #         user_input = input(self._get_prompt())
+        #     except (EOFError, KeyboardInterrupt):
+        #         print()
+        #         return
 
-            # Skip blank lines
-            if not user_input.strip():
-                continue
+        #     # Skip blank lines
+        #     if not user_input.strip():
+        #         continue
 
-            cmd, *args = self._parse_input(user_input)
+        #     cmd, *args = self._parse_input(user_input)
 
-            cmd = cmd.lower()
+        #     cmd = cmd.lower()
 
-            # Central routing
-            if cmd == "exit" or cmd == "quit":
-                return
-            elif cmd == "help":
-                self._show_help(args)
-            else:
-                # Everything else gets sent to the dispatcher
-                self._dispatcher.handle_command(cmd, args)
+        #     # Central routing
+        #     if cmd == "exit" or cmd == "quit":
+        #         return
+        #     elif cmd == "help":
+        #         self._show_help(args)
+        #     else:
+        #         # Everything else gets sent to the dispatcher
+        #         self._dispatcher.handle_command(cmd, args)
 
             # user_input = input(self._get_prompt())
             # show modules
@@ -94,6 +95,46 @@ class InterfaceManager:
             # > back
         pass
 
+    def show_modules(self) -> None:
+        pass
+
+    def show_options(self) -> None:
+        pass
+
+    def show_presets(self) -> None:
+        pass
+
+    def preset_load(self) -> None:
+        pass
+
+    def preset_save(self) -> None:
+        pass
+
+
+_COMMAND_TREE: Dict = {
+    "show": {
+        "modules":{"func": InterfaceManager.show_modules},
+        "options":{"module": True, "func": InterfaceManager.show_options},
+        "presets":{"module": True, "func": InterfaceManager.show_presets}
+    },
+    "info": {
+
+    },
+    "use": {
+
+    },
+    "help": {
+
+    },
+    "set": {
+        "module": True,
+    },
+    "preset": {
+        "module": True,
+        "load": InterfaceManager.preset_load,
+        "save": InterfaceManager.preset_save
+    }
+}
 
 # example
 '''

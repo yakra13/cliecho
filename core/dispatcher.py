@@ -5,7 +5,7 @@ import threading
 import uuid
 from dataclasses import dataclass
 from queue import Queue
-from typing import Optional, Type
+from typing import Optional, Type, Dict, List
 
 from core.exceptions import NoModuleSelectedError
 from core.module_loader import ModuleLoader
@@ -37,10 +37,10 @@ class Dispatcher:
         return cls._instance
 
     def __init__(self):
-        self._loaded_modules: dict[str, ModuleBase] = {}
+        self._loaded_modules: Dict[str, ModuleBase] = {}
         self._current_module: Optional[ModuleBase] = None
         self._module_loader: ModuleLoader = ModuleLoader()
-        self._jobs: dict[str, Job] = {}
+        self._jobs: Dict[str, Job] = {}
 
         self._global_commands = {
             "show": self._cmd_show,
@@ -61,7 +61,7 @@ class Dispatcher:
         }
 
     def _cmd_run(self) -> str:
-        if self.current_module() is None:
+        if self.current_module is None:
             raise NoModuleSelectedError()
             # return # TODO
 
@@ -85,20 +85,20 @@ class Dispatcher:
 
         return job_id
 
-    def _cmd_show(self, args: list[str]) -> str:
+    def _cmd_show(self, args: List[str]) -> str:
         modules = self._module_loader.discover()
 
         return format_show_modules(modules)
 
-    def _cmd_use(self, args: list[str]) -> str:
+    def _cmd_use(self, args: List[str]) -> str:
         try:
             self.set_current_module(args[0])
         except:
             pass
         return ""
 
-    def _cmd_set_param(self, args: list[str]) -> str:
-        module: Optional[ModuleBase] = self.current_module()
+    def _cmd_set_param(self, args: List[str]) -> str:
+        module: Optional[ModuleBase] = self.current_module
         if not module:
             raise NoModuleSelectedError()
 
@@ -122,20 +122,46 @@ class Dispatcher:
                 # TODO: log and inform user selected module could not be loaded
                 # Pass up config.yml not found
                 pass
-   
+
         if self._current_module is not None:
             # TODO: unload module if necessary
             self._current_module = self._loaded_modules[module_name]
 
+    @property
     def current_module(self) -> Optional[ModuleBase]:
+        """
+        Docstring for current_module
+        
+        :param self: Description
+        :return: Description
+        :rtype: ModuleBase | None
+        """
         return self._current_module
 
     def print_current_module_settings(self) -> str:
+        """
+        Docstring for print_current_module_settings
+        
+        :param self: Description
+        :return: Description
+        :rtype: str
+        """
         # Get current module args and current arg settings
         if self._current_module is None:
             raise NoModuleSelectedError()
 
         return format_module_settings(self._current_module.get_current_settings())
 
-    def handle_command(self, cmd: str, args: list[str]) -> str:
+    def handle_command(self, cmd: str, args: List[str]) -> str:
+        """
+        Docstring for handle_command
+        
+        :param self: Description
+        :param cmd: Description
+        :type cmd: str
+        :param args: Description
+        :type args: list[str]
+        :return: Description
+        :rtype: str
+        """
         return self._module_commands[cmd](args)

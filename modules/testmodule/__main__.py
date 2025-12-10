@@ -21,7 +21,7 @@ def main():
     )
 
     with module_logging_context(context):
-        LOGGER.info("Begin Execution")
+        LOGGER.log_info("Begin Execution")
         mod.run()
 
 if __name__ == '__main__':

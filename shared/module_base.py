@@ -3,7 +3,7 @@ Docstring for shared.module_base
 """
 from dataclasses import dataclass
 from importlib import resources
-from typing import Optional, Union, Type, Any, final
+from typing import Optional, Union, Type, Any, List, Dict, final
 import yaml
 # from queue import Queue
 
@@ -18,7 +18,7 @@ class ModuleArg:
     """
     description: str
     required: bool = False    
-    default_value: Optional[Union[str, list[str]]] = None
+    default_value: Optional[Union[str, List[str]]] = None
     help: Optional[str] = None
     shortname: Optional[str] = None
     value_type: Type = str
@@ -29,10 +29,10 @@ class ModuleBase:
     """
     def __init__(self):
         self._metadata = None
-        self._module_args: dict[str, ModuleArg] = {}
+        self._module_args: Dict[str, ModuleArg] = {}
         self._name: str = ''
         self._description: str = ''
-        self._options: dict[str, Any] = {}
+        self._options: Dict[str, Any] = {}
         # If no Queue is provided by the core then logging is handled internally
         # self._message_queue: Optional[Queue[Event]] = None
 
@@ -77,7 +77,7 @@ class ModuleBase:
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
 
-        LOGGER.info("Finish __init__")
+        LOGGER.log_info("Finish __init__")
 
     @property
     def name(self) -> str:
@@ -102,7 +102,7 @@ class ModuleBase:
         return self._description
 
     @property
-    def module_args(self) -> dict[str, ModuleArg]:
+    def module_args(self) -> Dict[str, ModuleArg]:
         """
         Docstring for module_args
         
@@ -153,7 +153,7 @@ class ModuleBase:
         return self._options.get(key)
 
     @final
-    def get_current_settings(self) -> dict[str, Any]:
+    def get_current_settings(self) -> Dict[str, Any]:
         """
         Docstring for get_current_settings
         
@@ -161,7 +161,7 @@ class ModuleBase:
         :return: Description
         :rtype: Dict[str, Any]
         """
-        settings: dict[str, Any] = {}
+        settings: Dict[str, Any] = {}
         for name, _ in self._module_args.items():
             current_value: Any = self._options.get(name, None)
             settings[name] = current_value
@@ -175,7 +175,7 @@ class ModuleBase:
         
         :param self: Description
         """
-        missing_args: list[str] = []
+        missing_args: List[str] = []
 
         for name, arg in self._module_args.items():
             if arg.required and self._options.get(name) is None:
