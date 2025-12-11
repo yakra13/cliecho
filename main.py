@@ -1,11 +1,11 @@
 # from pathlib import Path
 # from typing import Final
 import readline
-from typing import Optional
+from typing import Optional, List
 from core.interface_manager import InterfaceManager
 # from core.dispatcher import Dispatcher
 # from shared.module_base import ModuleBase
-# from core.module_loader import ModuleLoader
+from core.module_loader import ModuleLoader
 
 COMMANDS = {'show': ['modules', 'options', 'presets'],
             'use': [],
@@ -16,6 +16,7 @@ COMMANDS = {'show': ['modules', 'options', 'presets'],
 def completer(text: str, state: int) -> Optional[str]:
     line = readline.get_line_buffer()
     parts = line.lstrip().split()
+    modules: List[str] = ModuleLoader().get_modules()
 
     # First word completion
     if len(parts) == 0 or (len(parts) == 1 and not line.endswith(" ")):
@@ -37,10 +38,12 @@ readline.parse_and_bind("tab: complete")
 
 def main() -> None:
 
-    while True:
-        cmd = input("msf> ")
-        print("You typed:", cmd)
+    # TODO: load stuff
+    ModuleLoader().discover()
 
+    while True:
+        cmd = input("echo> ")
+        print("You typed:", cmd)
 
     cli = InterfaceManager()
 

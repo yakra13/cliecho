@@ -6,7 +6,7 @@ import importlib
 import zipfile
 from types import ModuleType
 from pathlib import Path
-from typing import Type, Final
+from typing import Type, Final, Dict, Any, List
 
 from shared.module_base import ModuleBase
 
@@ -18,9 +18,13 @@ class ModuleLoader:
     """
     def __init__(self):
         self.modules_path: Path = MODULE_DIR
-        self.loaded_modules = {}
+        self.loaded_modules: Dict[str, Type[ModuleBase]] = {}
+        self._discovered_modules: Dict[str, Path] = {}
 
-    def discover(self):
+    def get_modules(self) -> List[str]:
+        return list(self._discovered_modules.keys())
+
+    def discover(self) -> None:
         """
         Docstring for discover
         
@@ -28,7 +32,7 @@ class ModuleLoader:
         """
         wheel_files = MODULE_DIR.glob("*.whl")
 
-        discovered = {}
+        # discovered = {}
 
         for whl in wheel_files:
             with zipfile.ZipFile(whl, "r") as zf:
@@ -39,12 +43,14 @@ class ModuleLoader:
                 meta = zf.read(meta_file).decode("utf8")
                 name = meta.splitlines()[0].replace("Name: ", "").strip()
 
-                discovered[name] = {
-                    "file": whl,
-                    "module_name": name,
-                }
+                self._discovered_modules[name] = whl
+                # {
+                #     "file": whl,
+                #     "module_name": name,
+                # }
 
-        return discovered
+        
+        # return discovered
 
     def load(self, name: str) -> Type[ModuleBase]:
         """
