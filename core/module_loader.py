@@ -6,7 +6,7 @@ import importlib
 import zipfile
 from types import ModuleType
 from pathlib import Path
-from typing import Type, Final, Dict, Any, List
+from typing import Type, Final, Dict, Any, List, Optional
 
 from shared.module_base import ModuleBase
 
@@ -72,14 +72,20 @@ class ModuleLoader:
         :return: Description
         :rtype: type[ModuleBase]
         """
-        info = self.discover().get(name) # TODO: update
-        if not info:
+        module_path: Optional[Path] = self._discovered_modules.get(name) # TODO: update
+        
+        if not module_path:
             raise RuntimeError(f"Module '{name}' not found")
 
-        whl_path = str(info["file"])
-        sys.path.append(whl_path)
+        if not module_path.is_file():
+            raise RuntimeError(f"Mofule file '{module_path}' not found")
 
-        module: ModuleType = importlib.import_module(info["module_name"])
+        # insert the wheel path to system path
+        whl_path = str(module_path)
+        if whl_path not in sys.path:
+            sys.path.insert(0, whl_path)
+
+        module: ModuleType = importlib.import_module(name)
 
         for attr in dir(module):
             module_object = getattr(module, attr)
