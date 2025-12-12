@@ -16,7 +16,10 @@ COMMANDS = {'show': ['modules', 'options', 'presets'],
 def completer(text: str, state: int) -> Optional[str]:
     line = readline.get_line_buffer()
     parts = line.lstrip().split()
-    modules: List[str] = ModuleLoader().get_modules()
+
+    # TODO: do this for use "module name" etc
+    module_loader = ModuleLoader()
+    modules: List[str] = module_loader.get_modules_list()
 
     # First word completion
     if len(parts) == 0 or (len(parts) == 1 and not line.endswith(" ")):
@@ -39,7 +42,9 @@ readline.parse_and_bind("tab: complete")
 def main() -> None:
 
     # TODO: load stuff
-    ModuleLoader().discover()
+    module_loader = ModuleLoader()
+    module_loader.discover()
+    print(module_loader.get_modules_list())
 
     while True:
         cmd = input("echo> ")

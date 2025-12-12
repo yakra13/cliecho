@@ -10,7 +10,7 @@ from typing import Type, Final, Dict, Any, List
 
 from shared.module_base import ModuleBase
 
-MODULE_DIR: Final[Path] = Path("modules")
+MODULE_DIR: Final[Path] = Path("dist")#Path("modules")
 
 class ModuleLoader:
     """
@@ -21,7 +21,11 @@ class ModuleLoader:
         self.loaded_modules: Dict[str, Type[ModuleBase]] = {}
         self._discovered_modules: Dict[str, Path] = {}
 
-    def get_modules(self) -> List[str]:
+    # @property
+    # def discovered_modules(self) -> Dict[str, Path]:
+    #     return self._discovered_modules
+
+    def get_modules_list(self) -> List[str]:
         return list(self._discovered_modules.keys())
 
     def discover(self) -> None:
@@ -41,8 +45,14 @@ class ModuleLoader:
                     continue
 
                 meta = zf.read(meta_file).decode("utf8")
-                name = meta.splitlines()[0].replace("Name: ", "").strip()
-
+                name = "UNABLE TO EXTRACT NAME" # TODO: better failing
+                print(f'{meta}')
+                for line in meta.splitlines():
+                    s = line.strip()
+                    if s.startswith("Name:"):
+                        name = s.split()[1].strip()
+                # name = meta.splitlines()[1].replace("Name: ", "").strip()
+                print(f'{name}')
                 self._discovered_modules[name] = whl
                 # {
                 #     "file": whl,
@@ -62,7 +72,7 @@ class ModuleLoader:
         :return: Description
         :rtype: type[ModuleBase]
         """
-        info = self.discover().get(name)
+        info = self.discover().get(name) # TODO: update
         if not info:
             raise RuntimeError(f"Module '{name}' not found")
 
