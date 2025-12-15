@@ -93,8 +93,10 @@ class Dispatcher:
     def _cmd_use(self, args: List[str]) -> str:
         try:
             self.set_current_module(args[0])
-        except:
-            pass
+        except Exception as e:
+            # TODO
+            print(f"{e}")
+
         return ""
 
     def _cmd_set_param(self, args: List[str]) -> str:
@@ -112,6 +114,13 @@ class Dispatcher:
         return f"Set {args[0]} to '{args[1]}'" # TODO
 
     def set_current_module(self, module_name: str) -> None:
+        """
+        Docstring for set_current_module
+        
+        :param self: Description
+        :param module_name: Description
+        :type module_name: str
+        """
         # USE MODULE
         if not self._loaded_modules.get(module_name):
             # module not loaded

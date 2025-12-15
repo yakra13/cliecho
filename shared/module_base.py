@@ -23,6 +23,7 @@ class ModuleArg:
     shortname: Optional[str] = None
     value_type: Type = str
 
+
 class ModuleBase:
     """
     Docstring for ModuleBase
@@ -136,14 +137,14 @@ class ModuleBase:
 
         try:
             self._options[key] = self._module_args[key].value_type(val)
-        except:
-            raise ValueError()
+        except Exception as e:
+            raise ValueError() from e
 
     @final    
     def get_param(self, key):
         """
         Docstring for get_param
-        
+
         :param self: Description
         :param key: Description
         """

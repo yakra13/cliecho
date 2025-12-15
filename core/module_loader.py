@@ -71,7 +71,7 @@ class ModuleLoader:
             raise RuntimeError(f"Module '{name}' not found")
 
         if not module_path.is_file():
-            raise RuntimeError(f"Mofule file '{module_path}' not found")
+            raise RuntimeError(f"Module file '{module_path}' not found")
 
         # insert the wheel path to system path
         whl_path = str(module_path)
