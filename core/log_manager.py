@@ -4,10 +4,9 @@ LogManager docstring
 import getpass
 import socket
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict
 from shared.log_types import LogLevel, Event
 from core.dispatcher import Dispatcher
-
 
 
 class LogManager:
@@ -33,12 +32,12 @@ class LogManager:
         log_entry["hostname"] = socket.gethostname()
 
         # If a module is in use get its information
-        current_module = self._dispatcher.current_module()
+        current_module = self._dispatcher.current_module
 
         if current_module:
             log_entry["module"]["name"] = current_module.name
 
-            module_settings: dict[str, Any]= {}
+            module_settings: Dict[str, Any]= {}
             # Get the module option name and its current value
             for name, data in current_module.get_current_settings().items():
                 # data contains a tuple [ModuleArg, Any]
