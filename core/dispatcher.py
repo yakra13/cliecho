@@ -86,7 +86,7 @@ class Dispatcher:
         return job_id
 
     def _cmd_show(self, args: List[str]) -> str:
-        modules = self._module_loader.discover()
+        modules = self._module_loader.get_modules_list()
 
         return format_show_modules(modules)
 

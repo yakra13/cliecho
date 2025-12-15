@@ -8,8 +8,8 @@ from contextvars import ContextVar
 from queue import Queue
 from typing import Optional
 
-from .log_types import Event, LogLevel
-from .module_context import ModuleContext
+from log_types import Event, LogLevel
+from module_context import ModuleContext
 
 _current_queue: ContextVar[Optional[Queue]] = ContextVar("current_queue", default=None)
 _module_context: ContextVar[Optional[ModuleContext]] = ContextVar("module_context", default=None)
