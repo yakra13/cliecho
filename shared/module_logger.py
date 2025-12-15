@@ -2,39 +2,17 @@
 """
 import getpass
 import socket
+
 from contextlib import contextmanager
 from contextvars import ContextVar
-# from dataclasses import replace
 from queue import Queue
 from typing import Optional
 
-from log_types import Event, LogLevel
-from module_context import ModuleContext
+from .log_types import Event, LogLevel
+from .module_context import ModuleContext
 
-_current_queue: ContextVar[Optional[Queue]] = ContextVar("current_queue", default=None)
+_current_queue: ContextVar[Optional[Queue]]          = ContextVar("current_queue", default=None)
 _module_context: ContextVar[Optional[ModuleContext]] = ContextVar("module_context", default=None)
-
-# TODO: can get rid of these two functions and just call the set() in the contextmanagers below
-# def _set_event_queue(queue: Optional[Queue]) -> None:
-#     """
-#     Docstring for set_event_queue
-    
-#     :param queue: Description
-#     :type queue: Optional[Queue]
-#     """
-#     _current_queue.set(queue)
-
-# def _set_module_context(context: Optional[ModuleContext]) -> None:
-#     """
-#     Docstring for set_module_context
-    
-#     :param context: Description
-#     :type context: Optional[ModuleContext]
-#     """
-#     _module_context.set(context)
-
-# def get_event_queue() -> Optional[Queue]:
-#     return _event_queue.get()
 
 @contextmanager
 def module_event_queue(queue: Optional[Queue]):

@@ -39,7 +39,7 @@ class LogManager:
 
             module_settings: Dict[str, Any]= {}
             # Get the module option name and its current value
-            for name, data in current_module.get_current_settings().items():
+            for name, data in current_module.get_settings().items():
                 # data contains a tuple [ModuleArg, Any]
                 module_settings[name] = data[1]
 

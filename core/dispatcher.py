@@ -29,59 +29,34 @@ class Dispatcher:
     """
     Docstring for Dispatcher
     """
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self):
+    def _init_once(self):
         self._loaded_modules: Dict[str, ModuleBase] = {}
-        self._current_module: Optional[ModuleBase] = None
-        self._module_loader: ModuleLoader = ModuleLoader()
-        self._running_jobs: Dict[str, Job] = {}
-        self._completed_jobs: Dict[str, Job] = {}
-        self._job_log: Dict[str, List[str]] = {}
-
-        self._global_commands = {
-            "show": self._cmd_show,
-            # "search": self.cmd_search,
-            # "use": self.cmd_use,
-            # "describe": self.cmd_describe,
-            # "back": self.cmd_back,
-            # "kill": self._cmd_kill,
-        }
-
-        self._module_commands = {
-            "set": self._cmd_set_param,
-            # "unset": self._cmd_unset_param,
-            "run": self._cmd_run,
-            # "info": self.cmd_info,
-            # "save": self.cmd_save,
-            # "load": self.cmd_load,
-        }
+        self._current_module: Optional[ModuleBase]  = None
+        self._module_loader: ModuleLoader           = ModuleLoader()
+        self._running_jobs: Dict[str, Job]          = {}
+        self._completed_jobs: Dict[str, List[str]]  = {}
+        self._job_log: Dict[str, List[str]]         = {}
 
     def _cmd_run(self) -> str:
-        if self.current_module is None:
+        mod = self._current_module
+
+        if mod is None:
             raise NoModuleSelectedError()
             # return # TODO
 
         job_id: str = str(uuid.uuid4())
+
         event_queue: Queue = Queue()
-        module_context: ModuleContext = ModuleContext(
-            name=self._current_module.name,
-            options=self._current_module.get_current_settings()
-        )
+
+        module_context: ModuleContext = ModuleContext( name=mod.name, options=mod.get_settings())
 
         def run_module_thread():
             with module_event_queue(event_queue), module_logging_context(module_context):
-                self._current_module.run()
-        # self._current_module.message_queue = progress_queue
+                mod.run()
 
         t = threading.Thread(target=run_module_thread)
 
-        self._running_jobs[job_id] = Job(job_id, t, self._current_module, event_queue)
+        self._running_jobs[job_id] = Job(job_id, t, mod, event_queue)
 
         t.start()
 
@@ -149,7 +124,7 @@ class Dispatcher:
         """
         return self._current_module
 
-    def get_current_module_params(self) -> List[str]:
+    def get_module_params(self) -> List[str]:
         """
         Docstring for get_current_module_params
         
@@ -174,21 +149,7 @@ class Dispatcher:
         if self._current_module is None:
             raise NoModuleSelectedError()
 
-        return format_module_settings(self._current_module.get_current_settings())
-
-    def handle_command(self, cmd: str, args: List[str]) -> str:
-        """
-        Docstring for handle_command
-        
-        :param self: Description
-        :param cmd: Description
-        :type cmd: str
-        :param args: Description
-        :type args: list[str]
-        :return: Description
-        :rtype: str
-        """
-        return self._module_commands[cmd](args)
+        return format_module_settings(self._current_module.get_settings())
 
     def poll_jobs(self) -> None:
         """

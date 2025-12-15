@@ -13,7 +13,7 @@ def main():
     # Bind context for logging (standalone mode)
     context: ModuleContext = ModuleContext(
         name=mod.name if hasattr(mod, "name") else "NewTestModule",
-        options=mod.get_current_settings() if hasattr(mod, "get_current_settings") else {}
+        options=mod.get_settings() if hasattr(mod, "get_current_settings") else {}
     )
 
     with module_logging_context(context):

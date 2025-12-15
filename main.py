@@ -4,6 +4,7 @@ TODO: docstring
 import threading
 from queue import Empty, Queue
 import time
+from typing import List
 
 from core.completer import Completer
 from core.dispatcher import Dispatcher
@@ -19,7 +20,7 @@ def main() -> None:
     """
     # TODO: load stuff
 
-    module_loader = ModuleLoader()
+    # module_loader = ModuleLoader()
     dispatcher = Dispatcher()
     interface_manager = InterfaceManager()
     input_queue: Queue = Queue()
@@ -29,9 +30,11 @@ def main() -> None:
     # interface_manager.SetFormat()
 
     display_logo()
-    module_loader.discover()
+    ModuleLoader().discover()
+    print(ModuleLoader().get_modules_list())
+    print("asdasd asd asda dsa ")
 
-    input_thread = threading.Thread(target=InterfaceManager.get_input,
+    input_thread = threading.Thread(target=interface_manager.get_input,
                                     args=(input_queue,),
                                     daemon=True)
     input_thread.start()
@@ -40,19 +43,16 @@ def main() -> None:
         dispatcher.poll_jobs()
         # other stuff?
         try:
-            cmd = input_queue.get_nowait()
+            cmd = input_queue.get()
         except Empty:
             pass
         else:
             if cmd == "__EOF__":
                 break
 
-            token_list = interface_manager.parse_input(cmd)
-            interface_manager.handle_command(command, args)
+            tokens: List[str] = interface_manager.tokenize(cmd)
+            interface_manager.handle_command(tokens)
 
-            if interface_manager.is_top_level_command(command):
-            else:
-                dispatcher.handle_command(command, args)
         
         time.sleep(0.05)
 

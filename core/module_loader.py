@@ -8,22 +8,18 @@ from types import ModuleType
 from pathlib import Path
 from typing import Type, Final, Dict, List, Optional
 
+from core.util.singleton import Singleton
 from shared.module_base import ModuleBase
 
-MODULE_DIR: Final[Path] = Path("modules")
-
-class ModuleLoader:
+class ModuleLoader(Singleton):
     """
     Docstring for ModuleLoader
     """
-    def __init__(self):
-        self._modules_path: Path = MODULE_DIR
+
+    def _init_once(self):
+        self._modules_path: Path = Path("modules")
         self._loaded_modules: Dict[str, Type[ModuleBase]] = {}
         self._discovered_modules: Dict[str, Path] = {}
-
-    # @property
-    # def discovered_modules(self) -> Dict[str, Path]:
-    #     return self._discovered_modules
 
     def get_modules_list(self) -> List[str]:
         """
@@ -33,7 +29,9 @@ class ModuleLoader:
         :return: Description
         :rtype: List[str]
         """
-        return list(self._discovered_modules.keys()).sort()
+        modules = list(self._discovered_modules.keys())
+        modules.sort()
+        return modules
 
     def discover(self) -> None:
         """
@@ -41,7 +39,7 @@ class ModuleLoader:
         
         :param self: Description
         """
-        wheel_files = MODULE_DIR.glob("*.whl")
+        wheel_files = self._modules_path.glob("*.whl")
 
         # discovered = {}
 

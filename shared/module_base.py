@@ -154,7 +154,7 @@ class ModuleBase:
         return self._options.get(key)
 
     @final
-    def get_current_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> Dict[str, Any]:
         """
         Docstring for get_current_settings
         
