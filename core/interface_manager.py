@@ -1,7 +1,7 @@
 """
 """
 # try:
-import readline
+# import readline
 # except ImportError:
 #     # Windows
 #     import pyreadline3 as readline
@@ -10,7 +10,9 @@ import shlex
 from typing import Optional, List, Dict
 
 # from core.module_loader import ModuleLoader
-from core.dispatcher import Dispatcher, Job
+from core.completer import Completer
+from core.dispatcher import Dispatcher
+# from core.module_loader import ModuleLoader
 from shared.module_base import ModuleBase
 
 class InterfaceManager:
@@ -25,11 +27,12 @@ class InterfaceManager:
         return cls._instance
 
     def __init__(self):
-        self._dispatcher: Dispatcher = Dispatcher()
-        self._interactive: bool = True
+        # self._dispatcher: Dispatcher = Dispatcher()
+        # self._interactive: bool = True
+        pass
 
     def _get_prompt(self) -> str:
-        module: Optional[ModuleBase] = self._dispatcher.current_module
+        module: Optional[ModuleBase] = Dispatcher().current_module
         return f'{module.name}> ' if module else '> '
 
     def _parse_input(self, text: str) -> List[str]:
@@ -39,11 +42,33 @@ class InterfaceManager:
             print("[-] Input parse error.")
             return []
 
-    def _show_help(self, args: List[str]) -> str:
-        return ''
+    def _show_help(self) -> str:
+        return 'TODO: help'
 
     def run(self):
+        """
+        Docstring for run
         
+        :param self: Description
+        """
+        # Setup commands tab completion
+        Completer.setup()
+
+        while True:
+            # Dispatcher check Jobs/message queue
+            
+            user_input = input(self._get_prompt())
+
+            command, *args = self._parse_input(user_input)
+            # command validation?
+
+            # top level commands?
+
+            # if show modules, info, use, exit, help
+            # do it here
+            # else its a module command so pass to dispatcher
+            Dispatcher().handle_command(command, args)
+
         # if self._interactive:
             
         #     curses.wrapper(self._curses_interface)
@@ -110,31 +135,6 @@ class InterfaceManager:
     def preset_save(self) -> None:
         pass
 
-
-_COMMAND_TREE: Dict = {
-    "show": {
-        "modules":{"func": InterfaceManager.show_modules},
-        "options":{"module": True, "func": InterfaceManager.show_options},
-        "presets":{"module": True, "func": InterfaceManager.show_presets}
-    },
-    "info": {
-
-    },
-    "use": {
-
-    },
-    "help": {
-
-    },
-    "set": {
-        "module": True,
-    },
-    "preset": {
-        "module": True,
-        "load": InterfaceManager.preset_load,
-        "save": InterfaceManager.preset_save
-    }
-}
 
 # example
 '''

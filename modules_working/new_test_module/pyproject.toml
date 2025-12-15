@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "new_test_module"
+version = "0.1.0"
+description = "new_test_module description"
+readme = "README.md"
+requires-python = ">=3.8"
+
+# Exposes: python -m new_test_module
+[project.scripts]
+new_test_module = "new_test_module.__main__:main"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.setuptools.package-data]
+"new_test_module" = ["config.yml", "README.md"]
+
+[tool.setuptools.packages.find]
+where = ["."]

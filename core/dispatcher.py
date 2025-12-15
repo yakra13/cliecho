@@ -138,6 +138,19 @@ class Dispatcher:
         """
         return self._current_module
 
+    def get_current_module_params(self) -> List[str]:
+        """
+        Docstring for get_current_module_params
+        
+        :param self: Description
+        :return: Description
+        :rtype: List[str] | None
+        """
+        if not self._current_module:
+            return []
+
+        return list(self._current_module.module_args.keys())
+
     def print_current_module_settings(self) -> str:
         """
         Docstring for print_current_module_settings

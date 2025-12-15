@@ -4,9 +4,15 @@ import sys
 import textwrap
 
 TEMPLATE_INIT_PY = '''\
-from core.module_base import ModuleBase
+"""
+TODO: Module Docstring
+"""
+from shared.module_base import ModuleBase
 
 class {classname}(ModuleBase):
+    """
+    TODO: class docstring
+    """
     def run(self):
         super.run()
         # TODO: Implementation
@@ -14,6 +20,9 @@ class {classname}(ModuleBase):
 '''
 
 TEMPLATE_MAIN_PY = '''\
+from importlib.resources import files
+from shared.module_logger import module_logging_context, LOGGER
+from shared.module_context import ModuleContext
 from . import {classname}
 
 def main():
@@ -23,7 +32,19 @@ def main():
 
     # mod.validate()
 
-    mod.run()
+    # Bind context for logging (standalone mode)
+    context: ModuleContext = ModuleContext(
+        name=mod.name if hasattr(mod, "name") else "{classname}",
+        options=mod.get_current_settings() if hasattr(mod, "get_current_settings") else {{}}
+    )
+
+    with module_logging_context(context):
+        LOGGER.log_info("Begin Execution")
+        mod.run()
+
+def show_help():
+    readme = files("{modulename}").joinpath("README.md").read_text(encoding="utf-8")
+    print(readme)
 
 if __name__ == '__main__':
     main()
@@ -45,10 +66,14 @@ arguments:
             help: "help text"
             shortname: "?"
 '''
+TEMPLATE_README_MD = '''\
+# {modulename}
+## {classname}
+'''
 
 TEMPLATE_PROJECT_TOML = '''\
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -60,38 +85,79 @@ requires-python = ">=3.8"
 
 # Exposes: python -m {modulename}
 [project.scripts]
-testmodule = "{modulename}.__main__:main"
+{modulename} = "{modulename}.__main__:main"
 
 [tool.setuptools]
 package-dir = {{ "" = "." }}
 
 [tool.setuptools.package-data]
-"{modulename}" = ["*.yml"]
+"{modulename}" = ["config.yml", "README.md"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+'''
+
+TEMPLATE_BUILD_SH = '''\
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+MODULE_NAME=$(basename "$PWD")
+echo "[*] Building wheel for $MODULE_NAME using python3.8"
+
+# Clean old build artifacts
+rm -rf dist build *.egg-info
+
+# Make sure build tools are installed
+python3.8 -m pip install --upgrade pip setuptools wheel build
+
+# Build the wheel
+python3.8 -m build --wheel
+
+echo "[+] Build complete! Wheel file(s) in dist/:"
+ls -lh dist/*.whl
 '''
 
 def create_module(module_name: str):
-    base_path = os.path.join("modules", module_name)
+    """
+    Docstring for create_module
+    
+    :param module_name: Description
+    :type module_name: str
+    """
+    base_path = os.path.join("modules_working", module_name)
+    src_path = os.path.join(base_path, f"src/{module_name}")
 
     if os.path.exists(base_path):
         print(f"[!] Module '{module_name}' already exists.")
         return
-    
-    os.makedirs(base_path)
 
-    classname = ''.join(part.capitalize() for part in module_name.split('_'))
+    os.makedirs(src_path)
 
-    with open(os.path.join(base_path, "__init__.py"), "w") as f:
-        f.write(TEMPLATE_INIT_PY.format(classname=classname))
-    
-    with open(os.path.join(base_path, "__main__.py"), "w") as f:
-        f.write(TEMPLATE_MAIN_PY.format(classname=classname))
+    class_name = ''.join(part.capitalize() for part in module_name.split('_'))
+
+    with open(os.path.join(src_path, "__init__.py"), "w", encoding='utf8') as f:
+        f.write(TEMPLATE_INIT_PY.format(classname=class_name))
+
+    try:
+        with open(os.path.join(src_path, "__main__.py"), "w", encoding='utf8') as f:
+            f.write(TEMPLATE_MAIN_PY.format(classname=class_name, modulename=module_name))
+    except IndexError as e:
+        print(f"__main__ fail: {e}")
 
     # module.py where the main implementation lives
-    with open(os.path.join(base_path, "pyproject.toml"), "w") as f:
+    with open(os.path.join(base_path, "pyproject.toml"), "w", encoding='utf8') as f:
         f.write(TEMPLATE_PROJECT_TOML.format(modulename=module_name))
 
-    with open(os.path.join(base_path, "config.yml"), "w") as f:
+    with open(os.path.join(base_path, "build.sh"), "w", encoding='utf8') as f:
+        f.write(TEMPLATE_BUILD_SH)
+
+    with open(os.path.join(src_path, "config.yml"), "w", encoding='utf8') as f:
         f.write(TEMPLATE_CONFIG_YML.format(modulename=module_name))
+
+    with open(os.path.join(src_path, "README.md"), "w", encoding='utf8') as f:
+        f.write(TEMPLATE_README_MD.format(classname=class_name, modulename=module_name))
 
     print(f"[+] Module '{module_name}' created in {base_path}/")
 
@@ -99,5 +165,5 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: create_module.py <module_name>")
         sys.exit(1)
-    
+
     create_module(sys.argv[1])

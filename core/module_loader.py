@@ -52,15 +52,8 @@ class ModuleLoader:
                     if s.startswith("Name:"):
                         name = s.split()[1].strip()
                 # name = meta.splitlines()[1].replace("Name: ", "").strip()
-                print(f'{name}')
+                # print(f'{name}')
                 self._discovered_modules[name] = whl
-                # {
-                #     "file": whl,
-                #     "module_name": name,
-                # }
-
-        
-        # return discovered
 
     def load(self, name: str) -> Type[ModuleBase]:
         """
