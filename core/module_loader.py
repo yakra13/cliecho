@@ -6,19 +6,19 @@ import importlib
 import zipfile
 from types import ModuleType
 from pathlib import Path
-from typing import Type, Final, Dict, Any, List, Optional
+from typing import Type, Final, Dict, List, Optional
 
 from shared.module_base import ModuleBase
 
-MODULE_DIR: Final[Path] = Path("dist")#Path("modules")
+MODULE_DIR: Final[Path] = Path("modules")
 
 class ModuleLoader:
     """
     Docstring for ModuleLoader
     """
     def __init__(self):
-        self.modules_path: Path = MODULE_DIR
-        self.loaded_modules: Dict[str, Type[ModuleBase]] = {}
+        self._modules_path: Path = MODULE_DIR
+        self._loaded_modules: Dict[str, Type[ModuleBase]] = {}
         self._discovered_modules: Dict[str, Path] = {}
 
     # @property
@@ -26,7 +26,14 @@ class ModuleLoader:
     #     return self._discovered_modules
 
     def get_modules_list(self) -> List[str]:
-        return list(self._discovered_modules.keys())
+        """
+        Docstring for get_modules_list
+        
+        :param self: Description
+        :return: Description
+        :rtype: List[str]
+        """
+        return list(self._discovered_modules.keys()).sort()
 
     def discover(self) -> None:
         """
@@ -66,7 +73,7 @@ class ModuleLoader:
         :rtype: type[ModuleBase]
         """
         module_path: Optional[Path] = self._discovered_modules.get(name) # TODO: update
-        
+
         if not module_path:
             raise RuntimeError(f"Module '{name}' not found")
 
@@ -87,7 +94,7 @@ class ModuleLoader:
             is_subclass: bool = issubclass(module_object, ModuleBase)
 
             if is_instance and is_subclass and module_object is not ModuleBase:
-                self.loaded_modules[name] = module_object
+                self._loaded_modules[name] = module_object
                 return module_object
 
         raise RuntimeError("No ModuleBase subclass found")

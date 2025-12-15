@@ -100,3 +100,25 @@ class Completer:
 
     # Called at class creation
     COMMANDS = _build_commands.__func__()
+
+# TODO: complete logic for new CommandNodes????
+# def complete(tokens: List[str]) -> List[str]:
+#     node = None
+#     registry = CommandRegistry.build()
+
+#     for token in tokens[:-1]:
+#         if node is None:
+#             node = registry.get(token)
+#         else:
+#             node = node.children.get(token)
+
+#         if node is None:
+#             return []
+
+#     if node is None:
+#         return list(registry.keys())
+
+#     return [
+#         name for name, child in node.children.items()
+#         if not child.module_only or Dispatcher().current_module
+#     ]

@@ -4,7 +4,7 @@ Docstring for core.dispatcher
 import threading
 import uuid
 from dataclasses import dataclass
-from queue import Queue
+from queue import Empty, Queue
 from typing import Optional, Type, Dict, List
 
 from core.exceptions import NoModuleSelectedError
@@ -40,7 +40,9 @@ class Dispatcher:
         self._loaded_modules: Dict[str, ModuleBase] = {}
         self._current_module: Optional[ModuleBase] = None
         self._module_loader: ModuleLoader = ModuleLoader()
-        self._jobs: Dict[str, Job] = {}
+        self._running_jobs: Dict[str, Job] = {}
+        self._completed_jobs: Dict[str, Job] = {}
+        self._job_log: Dict[str, List[str]] = {}
 
         self._global_commands = {
             "show": self._cmd_show,
@@ -79,7 +81,7 @@ class Dispatcher:
 
         t = threading.Thread(target=run_module_thread)
 
-        self._jobs[job_id] = Job(job_id, t, self._current_module, event_queue)
+        self._running_jobs[job_id] = Job(job_id, t, self._current_module, event_queue)
 
         t.start()
 
@@ -187,3 +189,33 @@ class Dispatcher:
         :rtype: str
         """
         return self._module_commands[cmd](args)
+
+    def poll_jobs(self) -> None:
+        """
+        Docstring for poll_jobs
+        
+        :param self: Description
+        """
+        finished_job_ids = []
+
+        for job_id, job in self._running_jobs.items():
+            # Get job messages
+            while True:
+                try:
+                    msg = job.queue.get_nowait()
+                except Empty:
+                    break
+                else:
+                    self._job_log[job_id].append(msg)
+
+            # Check if job complete
+            if not job.thread.is_alive():
+                finished_job_ids.append(job_id)
+
+        # Remove completed jobs
+        for job_id in finished_job_ids:
+            self._running_jobs[job_id].thread.join()
+
+            self._completed_jobs[job_id] = self._job_log.pop(job_id)
+
+            del self._running_jobs[job_id]
