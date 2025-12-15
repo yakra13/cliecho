@@ -28,4 +28,4 @@ class Event:
     hostname: Optional[str] = None # = field(default_factory=socket.gethostname)
 
     module_name: Optional[str] = None
-    module_options: Dict[str, Any] = field(default_factory=Dict)
+    module_options: Dict[str, Any] = field(default_factory=dict)

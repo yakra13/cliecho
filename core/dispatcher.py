@@ -11,6 +11,7 @@ from core.exceptions import NoModuleSelectedError
 from core.module_loader import ModuleLoader
 from core.output_formatter import format_module_settings, format_show_modules
 
+from core.util.singleton import Singleton
 from shared.module_base import ModuleBase
 from shared.module_context import ModuleContext
 from shared.module_logger import module_event_queue, module_logging_context
@@ -25,14 +26,14 @@ class Job:
     module: ModuleBase
     queue: Queue
 
-class Dispatcher:
+class Dispatcher(Singleton):
     """
     Docstring for Dispatcher
     """
     def _init_once(self):
         self._loaded_modules: Dict[str, ModuleBase] = {}
         self._current_module: Optional[ModuleBase]  = None
-        self._module_loader: ModuleLoader           = ModuleLoader()
+        # self._module_loader: ModuleLoader           = ModuleLoader()
         self._running_jobs: Dict[str, Job]          = {}
         self._completed_jobs: Dict[str, List[str]]  = {}
         self._job_log: Dict[str, List[str]]         = {}
@@ -63,7 +64,7 @@ class Dispatcher:
         return job_id
 
     def _cmd_show(self, args: List[str]) -> str:
-        modules = self._module_loader.get_modules_list()
+        modules = ModuleLoader().get_modules_list()
 
         return format_show_modules(modules)
 
@@ -101,7 +102,7 @@ class Dispatcher:
         # USE MODULE
         if not self._loaded_modules.get(module_name):
             # module not loaded
-            module: Type[ModuleBase] = self._module_loader.load(module_name)
+            module: Type[ModuleBase] = ModuleLoader().load(module_name)
             try:
                 self._loaded_modules[module_name] = module()
             except RuntimeError as e:

@@ -110,16 +110,16 @@ echo "[*] Building wheel for $MODULE_NAME using python3.8"
 rm -rf dist build *.egg-info
 
 # Make sure build tools are installed
-python3.8 -m pip install --upgrade pip setuptools wheel build
+python3 -m pip install --upgrade pip setuptools wheel build
 
 # Build the wheel
-python3.8 -m build --wheel
+python3 -m build --wheel
 
 echo "[+] Build complete! Wheel file(s) in dist/:"
 ls -lh dist/*.whl
 '''
 
-def create_module(module_name: str):
+def create_module(module_name: str) -> None:
     """
     Docstring for create_module
     

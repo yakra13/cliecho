@@ -74,6 +74,13 @@ class _ModuleLogger:
         self._prepare_event_data(event)
 
         # TODO: print to terminal with formatting
+        color = '\033[39m'
+        reset = '\033[0m'
+        if event.log_level == LogLevel.ERROR:
+            color = '\033[31m'
+        elif event.log_level == LogLevel.WARNING:
+            color = '\033[33m'
+        print(f'{event.timestamp.strftime("%Y-%m-%d %H:%M:%S")} - {color}{event.message}{reset}')
 
     def log_info(self, message: str) -> None:
         """
