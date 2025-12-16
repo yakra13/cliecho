@@ -14,10 +14,11 @@ class LogLevel(Enum):
     INFO = auto()
     WARNING = auto()
     ERROR = auto()
+    DEBUG = auto()
     # TODO: Special Log levels
 
 @dataclass
-class Event:
+class EventLog:
     """
     Docstring for Event
     """

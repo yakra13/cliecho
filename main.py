@@ -10,6 +10,7 @@ from core.completer import Completer
 from core.dispatcher import Dispatcher
 from core.cli_manager import CLIManager
 from core.module_loader import ModuleLoader
+from shared.module_logger import LOGGER
 
 def display_logo() -> None:
     print("""
@@ -58,6 +59,13 @@ def main() -> None:
     """
 
     input_queue: Queue = Queue()
+    io_lock = threading.Lock()
+    print_event = threading.Event()
+    print_event.set()
+
+    LOGGER.io_lock = io_lock
+    LOGGER.print_event = print_event
+
     # Setup commands tab completion
     Completer.setup()
 
@@ -69,26 +77,28 @@ def main() -> None:
     ModuleLoader().discover()
 
     input_thread = threading.Thread(target=CLIManager().get_input,
-                                    args=(input_queue,),
+                                    args=(input_queue, io_lock, print_event,),
                                     daemon=True)
     input_thread.start()
 
     while True:
+        # LOGGER.console_error("error message")
         Dispatcher().poll_jobs()
         # other stuff?
         try:
-            cmd = input_queue.get()
+            # Get user input
+            cmd = input_queue.get(timeout=0.1)
         except Empty:
             pass
         else:
             if cmd == "__EOF__":
                 break
-
+            # Process and handle user input
             tokens: List[str] = CLIManager().tokenize(cmd)
             CLIManager().handle_command(tokens)
 
         
-        time.sleep(0.05)
+        # time.sleep(0.05)
 
 
 if __name__ == "__main__":

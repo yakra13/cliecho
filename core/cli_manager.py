@@ -2,11 +2,14 @@
 """
 import shlex
 from queue import Queue
+from threading import Event, Lock
+import time
 from typing import Callable, Optional, List, Dict, Sequence
 
 from core.command_registry import CommandNode, build_command_registry
 from core.dispatcher import Dispatcher
 from core.module_loader import ModuleLoader
+from core.output_formatter import format_show_modules
 from core.util.singleton import Singleton
 
 from shared.module_base import ModuleBase
@@ -21,7 +24,7 @@ class CLIManager(Singleton):
 
     def _get_prompt(self) -> str:
         module: Optional[ModuleBase] = Dispatcher().current_module
-        return f'{module.name}> ' if module else '> '
+        return f'{module.name}> ' if module else 'RE> '
 
     def tokenize(self, text: str) -> List[str]:
         """ Split a string preserving quoted text. """
@@ -35,9 +38,8 @@ class CLIManager(Singleton):
     def handle_show_modules(self, args: Sequence[str]) -> None:
         """ Handle show modules command. """
         # TODO: print out the available modules
-        print(f"handle show modules: {args}")
-        # module_loader = ModuleLoader()
-        print(ModuleLoader().get_modules_list())
+        message = format_show_modules(ModuleLoader().get_modules_list())
+        LOGGER.console_raw("Available modules:\n" + message)
 
     def handle_show_options(self, args: Sequence[str]) -> None:
         """ Handle show options command. """
@@ -78,6 +80,16 @@ class CLIManager(Singleton):
         """ Handle exit command. """
         # TODO: handle exit/current module exit
         print(f"handle exit: {args}")
+        if Dispatcher().current_module:
+            module_name = Dispatcher().current_module.name or "unknown module"
+            Dispatcher().set_current_module(None)
+            LOGGER.console_raw(f"Exited {module_name}")
+            return
+        
+        # TODO: 
+
+        if Dispatcher().has_running_jobs():
+
 
     def handle_help(self, args: Sequence[str]) -> None:
         """ Handle help command. """
@@ -100,7 +112,6 @@ class CLIManager(Singleton):
         node: Optional[CommandNode] = None
         registry: Dict[str, CommandNode] = build_command_registry()
 
-        LOGGER.console_warn("Testing the warning!!!")
         for i, token in enumerate(tokens):
             if i == 0:
                 node = registry.get(token)
@@ -132,18 +143,20 @@ class CLIManager(Singleton):
                 # TODO: incomplete command
                 pass
 
-    def get_input(self, queue: Queue):
+    def get_input(self, queue: Queue, io_lock: Lock, print_event: Event):
         """
         Docstring for run
         
         :param self: Description
         """
         while True:
+            print_event.wait()
             try:
-                # Dispatcher check Jobs/message queue
-
-                user_input = input(self._get_prompt())
+                with io_lock:
+                    user_input = input(self._get_prompt())
                 queue.put(user_input)
             except EOFError:
                 queue.put("__EOF__")
                 break
+
+            # time.sleep(0.1)

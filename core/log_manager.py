@@ -5,7 +5,7 @@ import getpass
 import socket
 from datetime import datetime, timezone
 from typing import Any, Dict
-from shared.log_types import LogLevel, Event
+from shared.log_types import LogLevel, EventLog
 from core.dispatcher import Dispatcher
 
 
@@ -24,7 +24,7 @@ class LogManager:
         self._dispatcher = Dispatcher()
 
     def _log(self, log_level: LogLevel, message: str):
-        event: Event = Event(message=message, log_level=log_level)
+        event: EventLog = EventLog(message=message, log_level=log_level)
         log_entry: dict = {}
         log_entry["timestamp"] = datetime.now(timezone.utc)
         log_entry["type"] = log_level.name

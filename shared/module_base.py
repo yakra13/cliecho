@@ -47,10 +47,9 @@ class ModuleBase:
         with cfg_path.open("r", encoding="utf-8") as f:
             self._metadata = yaml.safe_load(f)
 
-        self._name = self._metadata["name"]
+        self._name        = self._metadata["name"]
         self._description = self._metadata["description"]
-
-        args = self._metadata["arguments"]
+        args              = self._metadata["arguments"]
 
         # Parse required args
         for name, spec in args.get("required", {}).items():
@@ -78,7 +77,7 @@ class ModuleBase:
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
 
-        LOGGER.log_info("Finish __init__")
+        LOGGER.console_info("Finish __init__")
 
     @property
     def name(self) -> str:

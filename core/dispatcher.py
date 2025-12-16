@@ -91,7 +91,11 @@ class Dispatcher(Singleton):
 
         return f"Set {args[0]} to '{args[1]}'" # TODO
 
-    def set_current_module(self, module_name: str) -> None:
+    def has_running_jobs(self) -> bool:
+        """Check if any jobs are currently running."""
+        return bool(self._running_jobs)
+
+    def set_current_module(self, module_name: str | None) -> None:
         """
         Docstring for set_current_module
         
@@ -99,6 +103,10 @@ class Dispatcher(Singleton):
         :param module_name: Description
         :type module_name: str
         """
+        if module_name is None:
+            self._current_module = None
+            return
+
         # USE MODULE
         if not self._loaded_modules.get(module_name):
             # module not loaded
@@ -153,11 +161,7 @@ class Dispatcher(Singleton):
         return format_module_settings(self._current_module.get_settings())
 
     def poll_jobs(self) -> None:
-        """
-        Docstring for poll_jobs
-        
-        :param self: Description
-        """
+        """Polls running jobs, consumes their message queues and close finished jobs."""
         finished_job_ids = []
 
         for job_id, job in self._running_jobs.items():
