@@ -88,7 +88,7 @@ class CLIManager(Singleton):
         
         # TODO: 
 
-        if Dispatcher().has_running_jobs():
+        # if Dispatcher().has_running_jobs():
 
 
     def handle_help(self, args: Sequence[str]) -> None:
