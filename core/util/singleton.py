@@ -15,6 +15,6 @@ class Singleton:
                     cls._instances[cls] = instance
                     instance._init_once(*args, **kwargs)
         return cast(T, cls._instances[cls])
-    
+
     def _init_once(self, *args, **kwargs) -> None:
         pass

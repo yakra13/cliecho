@@ -61,6 +61,10 @@ class CLIManager(Singleton):
         # TODO: set current module
         print(f"handle use: {args}")
 
+    def handle_run(self, args: Sequence[str]) -> None:
+        """Handle run command."""
+        Dispatcher().run_module()
+
     def handle_set(self, args: Sequence[str]) -> None:
         """ Handle set command. """
         # TODO: handle current module set param value
@@ -85,7 +89,7 @@ class CLIManager(Singleton):
             Dispatcher().set_current_module(None)
             LOGGER.console_raw(f"Exited {module_name}")
             return
-        
+
         # TODO: 
 
         # if Dispatcher().has_running_jobs():
@@ -108,7 +112,7 @@ class CLIManager(Singleton):
         """ Consumes list of string tokens and dispatches the resulting command. """
         if not tokens:
             return
-        
+
         node: Optional[CommandNode] = None
         registry: Dict[str, CommandNode] = build_command_registry()
 

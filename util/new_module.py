@@ -55,13 +55,15 @@ description: "{modulename} description"
 arguments:
     required:
         examplerequired:
-            description: "description"
             default: "default_value"
+            type: "str"
+            description: "description"
             help: "help text"
             shortname: "?"
 
     optional:
         exampleoptional:
+            type: "str"
             description: "description"
             help: "help text"
             shortname: "?"

@@ -81,8 +81,8 @@ def main() -> None:
                                     daemon=True)
     input_thread.start()
 
+    # Main program loop
     while True:
-        # LOGGER.console_error("error message")
         Dispatcher().poll_jobs()
         # other stuff?
         try:
@@ -96,9 +96,6 @@ def main() -> None:
             # Process and handle user input
             tokens: List[str] = CLIManager().tokenize(cmd)
             CLIManager().handle_command(tokens)
-
-        
-        # time.sleep(0.05)
 
 
 if __name__ == "__main__":
