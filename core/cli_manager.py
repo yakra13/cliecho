@@ -3,6 +3,7 @@
 import shlex
 from queue import Queue
 from threading import Event, Lock
+import threading
 import time
 from typing import Callable, Optional, List, Dict, Sequence
 
@@ -20,6 +21,7 @@ class CLIManager(Singleton):
     Manages IO for the terminal.
     """
     def _init_once(self, *args, **kwargs) -> None:
+        self._io_lock = threading.Lock()
         return super()._init_once(*args, **kwargs)
 
     def _get_prompt(self) -> str:
@@ -59,7 +61,23 @@ class CLIManager(Singleton):
     def handle_use(self, args: Sequence[str]) -> None:
         """ Handle use command. """
         # TODO: set current module
-        print(f"handle use: {args}")
+        # Exactly one arg as module name
+        if len(args) != 1:
+            # TODO: correct usage use module_name
+            return
+
+        # TODO: lower case a bunch of stuff
+        if args[0] not in ModuleLoader().get_modules_list():
+            # TODO: does not match an available module
+            return
+
+        try:
+            # ModuleLoader().load(args[0])
+            # Set current module and load if necessary
+            Dispatcher().set_current_module(args[0])
+        except RuntimeError as err:
+            LOGGER.console_error(str(err))
+        
 
     def handle_run(self, args: Sequence[str]) -> None:
         """Handle run command."""
@@ -102,7 +120,7 @@ class CLIManager(Singleton):
 
 #endregion
 
-    def _resolve_handler(self, node: CommandNode) -> Optional[Callable[[List[str]], None]]:
+    def _resolve_handler(self, node: CommandNode) -> Optional[Callable[[List[str] | None], None]]:
         """ Resolve command node string hanlder name to function. """
         if node.handler:
             return getattr(self, node.handler)
@@ -110,57 +128,78 @@ class CLIManager(Singleton):
 
     def handle_command(self, tokens: List[str]) -> None:
         """ Consumes list of string tokens and dispatches the resulting command. """
+        # No text entered just return
         if not tokens:
             return
 
         node: Optional[CommandNode] = None
+        args: Optional[List[str]]   = None
+        cmd: str = ''
+        # Get the current command registry
         registry: Dict[str, CommandNode] = build_command_registry()
 
+        # Loop over each token
         for i, token in enumerate(tokens):
             if i == 0:
+                # Get the root node from the command
                 node = registry.get(token)
-            else:
-                if node and token in node.children:
+                cmd = token
+            elif node:
+                # Walk the command tree to find the final command
+                # show modules
+                #      presets
+                #      jobs
+                #      etc
+                if token in node.children:
                     node = node.children[token]
+                    cmd = ' '.join([cmd, token])
                 else:
+                    # Current token is not a child of the current node
+                    # they are either arguments to the command or an invalid token
+
+                    # Assign the remaining tokens to args
+                    args = tokens[i:] if node else tokens
                     break
 
-            if node is None:
-                # TODO: Invalid command "{' '.join(tokens[:i+1])}"
-                return
+        # If no command node was found exit
+        if node is None:
+            LOGGER.console_raw(f"'{tokens[0]}' is not a valid command token")
+            return
 
-            # Check if its a module command and there is a module in use
-            if node.module_only and not Dispatcher().current_module:
-                # TODO: No module in use
-                return
+        # If the command requires a module in use but there is none exit
+        if node.module_only and not Dispatcher().current_module:
+            LOGGER.console_raw(f"'{cmd}' requires a module to be in use")
+            return
 
-            args = tokens[i + 1:] if node else tokens
-            if node:
-                # Find the matching handler function from the command node
-                func = self._resolve_handler(node)
-                if func:
-                    func(args)
-                else:
-                    # TODO: misspelled function name or not implemented
-                    LOGGER.log_error(f"{node.handler} function not found.")
-            else:
-                # TODO: incomplete command
-                pass
+        # Should be valid command
+        func = self._resolve_handler(node)
+        if func:
+            # args handled by function
+            func(args)
+        else:
+            # TODO: misspelled function name or not implemented from the command registry
+            LOGGER.console_raw(f"DEVELOPER ERR: {node.handler} is not implemented or is spelled incorrectly." \
+                               "See cli_manager.py or command_registry.py")
 
-    def get_input(self, queue: Queue, io_lock: Lock, print_event: Event):
+
+    def get_input(self, queue: Queue): #, io_lock: Lock, print_event: Event):
         """
         Docstring for run
         
         :param self: Description
         """
         while True:
-            print_event.wait()
-            try:
-                with io_lock:
-                    user_input = input(self._get_prompt())
-                queue.put(user_input)
-            except EOFError:
-                queue.put("__EOF__")
+            user_input = input(self._get_prompt())
+            queue.put(user_input)
+            if user_input == "__EOF__":
                 break
+            # print_event.wait()
+            # try:
+                # with io_lock:
+                    # user_input = input(self._get_prompt())
+                # queue.put(user_input)
+            # except EOFError:
+                # queue.put("__EOF__")
+                # break
 
             # time.sleep(0.1)

@@ -9,10 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Type, Dict, List, Optional
+import zipimport
 
 from core.util.singleton import Singleton
 from shared.module_base import ModuleBase
-from core.dispatcher import Dispatcher
+# from core.dispatcher import Dispatcher
 
 @ dataclass
 class ModulePreset():
@@ -96,9 +97,21 @@ class ModuleLoader(Singleton):
             raise RuntimeError(f"Module file '{module_path}' not found")
 
         # Insert the wheel path to system path
-        whl_path = str(module_path)
-        if whl_path not in sys.path:
-            sys.path.insert(0, whl_path)
+        # whl_path = str(module_path)
+        # if whl_path not in sys.path:
+        #     sys.path.insert(0, whl_path)
+        
+        extract_dir = Path(".temp_modules") / module_path.stem
+        src_dir = extract_dir
+
+        extract_dir.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(module_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+
+        # TODO: handle src_dir errors and such
+        if src_dir.is_dir() and str(src_dir) not in sys.path:
+            sys.path.insert(0, str(src_dir))
 
         module: ModuleType = importlib.import_module(name)
 

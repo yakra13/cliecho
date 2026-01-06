@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Optional
 
 # from core.command_registry import CommandNode, build_command_registry
 from core.dispatcher import Dispatcher
-from core.module_loader import ModuleLoader
+# from core.module_loader import ModuleLoader
 from core.command_registry import CommandNode, build_command_registry
 
 # from core.dispatcher import Dispatcher
@@ -80,7 +80,7 @@ class Completer:
     def _completer(cls, text: str, state: int) -> Optional[str]:
         # Compute matches only on state 0 (first word of the command)
         if state == 0:
-            cls._matches = cls._compute_matches(text)
+                cls._matches = cls._compute_matches(text)
 
         try:
             return cls._matches[state]

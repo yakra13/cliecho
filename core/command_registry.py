@@ -51,7 +51,7 @@ def build_command_registry() -> Dict[str, CommandNode]:
             handler='handle_set', module_only=True),
         'preset': CommandNode(module_only=True, children={
             'info': CommandNode(
-                completer= Dispatcher().get_presets_list(),
+                completer=lambda _: Dispatcher().get_presets_list(),
                 handler='handle_preset_info', module_only=True),
             'list': CommandNode(handler='handle_preset_list', module_only=True),
             'load': CommandNode(handler='handle_preset_load', module_only=True),

@@ -47,7 +47,7 @@ class ModuleBase:
         with cfg_path.open("r", encoding="utf-8") as f:
             self._metadata = yaml.safe_load(f)
 
-        self._name        = self._metadata["name"]
+        self._name        = pkg #self._metadata["name"]
         self._description = self._metadata["description"]
         args              = self._metadata["arguments"]
 

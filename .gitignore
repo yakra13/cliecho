@@ -1,3 +1,4 @@
+.temp_modules
 modules_working/*/build/
 modules_working/*/dist/
 modules_working/*/*.egg-info/

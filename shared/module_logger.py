@@ -3,13 +3,15 @@
 from dataclasses import dataclass
 from datetime import datetime
 import getpass
+import readline
 import socket
+import sys
 
 from contextlib import contextmanager
 from contextvars import ContextVar
 from queue import Queue
 import threading
-from typing import Final, Optional
+from typing import Final, List, Optional
 
 from .log_types import EventLog, LogLevel
 from .module_context import ModuleContext
@@ -94,9 +96,26 @@ class _ModuleLogger:
     _hostname: str = socket.gethostname()
 
     def __init__(self):
-        self._lock = threading.Lock()
-        self.io_lock: threading.Lock
-        self.print_event: threading.Event
+        # self._lock = threading.Lock()
+        self._io_lock: threading.Lock = threading.Lock()
+        # self.print_event: threading.Event
+        self._console_raw_buffer: List[str] = []
+    
+    def flush_console(self):
+        """
+        Docstring for flush_console
+        
+        :param self: Description
+        """
+
+        with self._io_lock:
+            try:
+                for message in self._console_raw_buffer:
+                    sys.stdout.write(message + '\n')
+                sys.stdout.flush()
+            finally:
+                # Empty the message buffer
+                self._console_raw_buffer.clear()
 
     def _format_timestamp(self, timestamp: datetime) -> str:
 
@@ -136,10 +155,10 @@ class _ModuleLogger:
                                           event.log_level.name,
                                           event.message,
                                           Color.RESET)
-        self.print_event.clear()
-        with self.io_lock:
+        # self.print_event.clear()
+        with self._io_lock:
             print(f'{ts} {module} {message}')
-        self.print_event.set()
+        # self.print_event.set()
 
     def log_info(self, message: str) -> None:
         """
@@ -149,8 +168,8 @@ class _ModuleLogger:
         :param message: Description
         :type message: str
         """
-        with self._lock:
-            self._write(EventLog(log_level=LogLevel.INFO, message=message))
+        # with self._lock:
+        #     self._write(EventLog(log_level=LogLevel.INFO, message=message))
 
     def log_warn(self, message: str) -> None:
         """
@@ -160,8 +179,8 @@ class _ModuleLogger:
         :param message: Description
         :type message: str
         """
-        with self._lock:
-            self._write(EventLog(log_level=LogLevel.WARNING, message=message))
+        # with self._lock:
+        #     self._write(EventLog(log_level=LogLevel.WARNING, message=message))
 
     def log_error(self, message: str) -> None:
         """
@@ -171,15 +190,18 @@ class _ModuleLogger:
         :param message: Description
         :type message: str
         """
-        with self._lock:
-            self._write(EventLog(log_level=LogLevel.ERROR, message=message))
+        # with self._lock:
+        #     self._write(EventLog(log_level=LogLevel.ERROR, message=message))
 
     def console_raw(self, message:str) -> None:
         """Log directly to the console without formatting."""
-        self.print_event.clear()
-        with self.io_lock:
-            print(message)
-        self.print_event.set()
+        # self.print_event.clear()
+        with self._io_lock:
+            self._console_raw_buffer.append(message)
+            # print(message, flush=True)
+            # sys.stdout.write('\n')
+            # sys.stdout.write(message + '\n')
+        # self.print_event.set()
 
 
     def console_info(self, message:str) -> None:
@@ -190,8 +212,8 @@ class _ModuleLogger:
         :param message: Description
         :type message: str
         """
-        with self._lock:
-            self._console_write(EventLog(log_level=LogLevel.INFO, message=message))
+        # with self._lock:
+        #     self._console_write(EventLog(log_level=LogLevel.INFO, message=message))
 
     def console_warn(self, message: str) -> None:
         """
@@ -201,8 +223,8 @@ class _ModuleLogger:
         :param message: Description
         :type message: str
         """
-        with self._lock:
-            self._console_write(EventLog(log_level=LogLevel.WARNING, message=message))
+        # with self._lock:
+        #     self._console_write(EventLog(log_level=LogLevel.WARNING, message=message))
 
     def console_error(self, message: str) -> None:
         """
@@ -212,7 +234,7 @@ class _ModuleLogger:
         :param message: Description
         :type message: str
         """
-        with self._lock:
-            self._console_write(EventLog(log_level=LogLevel.ERROR, message=message))
+        # with self._lock:
+        #     self._console_write(EventLog(log_level=LogLevel.ERROR, message=message))
 
 LOGGER = _ModuleLogger()

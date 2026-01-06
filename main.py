@@ -59,15 +59,15 @@ def main() -> None:
     """
 
     input_queue: Queue = Queue()
-    io_lock = threading.Lock()
-    print_event = threading.Event()
-    print_event.set()
+    # io_lock = threading.Lock()
+    # print_event = threading.Event()
+    # print_event.set()
 
-    LOGGER.io_lock = io_lock
-    LOGGER.print_event = print_event
+    # LOGGER.io_lock = io_lock
+    # LOGGER.print_event = print_event
 
     # Setup commands tab completion
-    Completer.setup()
+    Completer().setup()
 
     # interface_manager.SetVerbosity()
     # interface_manager.SetFormat()
@@ -77,7 +77,7 @@ def main() -> None:
     ModuleLoader().discover()
 
     input_thread = threading.Thread(target=CLIManager().get_input,
-                                    args=(input_queue, io_lock, print_event,),
+                                    args=(input_queue,), # io_lock, print_event,),
                                     daemon=True)
     input_thread.start()
 
@@ -89,13 +89,16 @@ def main() -> None:
             # Get user input
             cmd = input_queue.get(timeout=0.1)
         except Empty:
-            pass
-        else:
-            if cmd == "__EOF__":
-                break
-            # Process and handle user input
-            tokens: List[str] = CLIManager().tokenize(cmd)
-            CLIManager().handle_command(tokens)
+            continue
+
+        if cmd == "__EOF__":
+            break
+
+        # Process and handle user input
+        tokens: List[str] = CLIManager().tokenize(cmd)
+        CLIManager().handle_command(tokens)
+
+        LOGGER.flush_console()
 
 
 if __name__ == "__main__":

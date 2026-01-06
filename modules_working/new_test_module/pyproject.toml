@@ -14,10 +14,11 @@ requires-python = ">=3.8"
 new_test_module = "new_test_module.__main__:main"
 
 [tool.setuptools]
-package-dir = { "" = "." }
-
-[tool.setuptools.package-data]
-"new_test_module" = ["config.yml", "README.md"]
+package-dir = { "" = "src" }
+include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
+
+[tool.setuptools.package-data]
+new_test_module = ["config.yml", "README.md"]

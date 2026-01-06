@@ -140,6 +140,7 @@ class Dispatcher(Singleton):
         # USE MODULE
         if not self._loaded_modules.get(module_name):
             # module not loaded
+            # TODO: load raises runtime error should move into try catch
             module: Type[ModuleBase] = ModuleLoader().load(module_name)
             try:
                 self._loaded_modules[module_name] = module()
@@ -150,7 +151,8 @@ class Dispatcher(Singleton):
 
         if self._current_module is not None:
             # TODO: unload module if necessary
-            self._current_module = self._loaded_modules[module_name]
+            pass
+        self._current_module = self._loaded_modules[module_name]
 
     @property
     def current_module(self) -> Optional[ModuleBase]:
