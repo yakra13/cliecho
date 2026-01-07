@@ -11,6 +11,7 @@ from core.cli_manager import CLIManager
 from core.dispatcher import Dispatcher
 # from core.module_loader import ModuleLoader
 from core.command_registry import CommandNode, build_command_registry
+from core.output_formatter import format_list_as_table
 
 # from core.dispatcher import Dispatcher
 
@@ -28,6 +29,7 @@ from core.command_registry import CommandNode, build_command_registry
 class Completer:
     """Handles command tab completion and cli setup."""
     _matches: list[str] = []
+    _flag_help: Optional[str] = None
 
     @classmethod
     def setup(cls):
@@ -35,7 +37,7 @@ class Completer:
 
         readline.set_completer(cls._completer)
         readline.parse_and_bind('tab: complete')
-        readline.set_completion_display_matches_hook(CLIManager().display_matches_hook)
+        readline.set_completion_display_matches_hook(cls._display_matches_hook)
 
     @classmethod
     def _compute_matches(cls, text: str) -> List[str]:
@@ -70,7 +72,15 @@ class Completer:
 
         completions = cls._node_completions(node=node, args=args)
 
-        return [c for c in completions if c.startswith(text.lower())]
+        if completions:
+            return [c for c in completions if c.startswith(text.lower())]
+        
+        if node.flags:
+            cls._flag_help = ''
+            for flag in node.flags:
+                cls._flag_help += f"    {flag.short} [{flag.full}]\t{flag.description}\n"
+
+        return []
 
     @staticmethod
     def _node_completions(node: CommandNode, args: List[str]) -> List[str]:
@@ -93,12 +103,38 @@ class Completer:
     def _completer(cls, text: str, state: int) -> Optional[str]:
         # Compute matches only on state 0 (first word of the command)
         if state == 0:
-                cls._matches = cls._compute_matches(text)
+            cls._matches = cls._compute_matches(text)
+
+            if cls._flag_help:
+                cls._display_matches_hook(None, None, None)
+                readline.redisplay()
 
         try:
-                return cls._matches[state]
+            return cls._matches[state]
         except IndexError:
             return None
+    @classmethod
+    def _display_matches_hook(cls, substitution, matches, longest_match_length):
+        # TODO: custom formatter for auto complete suggestions
+        sys.stdout.write('\n')
+
+        if cls._flag_help:
+            # Display help info for command flags
+            sys.stdout.write(cls._flag_help)
+            cls._flag_help = None
+        elif len(matches) > 4:
+            # Display as table
+            sys.stdout.write(format_list_as_table(matches, columns=4))
+        else:
+            # Display in single column
+            sys.stdout.write(format_list_as_table(matches)) # default 1 column
+            
+        # Redraw prompt and input        
+        # sys.stdout.write("\r\033[K")
+        sys.stdout.write('\n')
+        sys.stdout.write(CLIManager().get_prompt() + readline.get_line_buffer())
+
+        sys.stdout.flush()
 
 
 # def build_command_registry() -> Dict[str, CommandNode]:

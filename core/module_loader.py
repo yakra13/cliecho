@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Type, Dict, List, Optional
-import zipimport
 
 from core.util.singleton import Singleton
 from shared.module_base import ModuleBase

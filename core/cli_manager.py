@@ -26,7 +26,7 @@ class CLIManager(Singleton):
         self._io_lock = threading.Lock()
         return super()._init_once(*args, **kwargs)
 
-    def _get_prompt(self) -> str:
+    def get_prompt(self) -> str:
         module: Optional[ModuleBase] = Dispatcher().current_module
         return f'{module.name}> ' if module else 'RE> '
 
@@ -193,7 +193,7 @@ class CLIManager(Singleton):
         :param self: Description
         """
         while True:
-            user_input = input(self._get_prompt())
+            user_input = input(self.get_prompt())
             queue.put(user_input)
             if user_input == "__EOF__":
                 break
@@ -208,20 +208,3 @@ class CLIManager(Singleton):
 
             # time.sleep(0.1)
 
-    def display_matches_hook(self, substitution, matches, longest_match_length):
-        # TODO: custom formatter for auto complete suggestions
-        sys.stdout.write('\n')
-
-        if len(matches) > 4:
-            # Display as table
-            sys.stdout.write(format_list_as_table(matches, columns=4))
-        else:
-            # Display in single column
-            sys.stdout.write(format_list_as_table(matches)) # default 1 column
-            
-        # Redraw prompt and input        
-        # sys.stdout.write("\r\033[K")
-        sys.stdout.write('\n')
-        sys.stdout.write(self._get_prompt() + readline.get_line_buffer())
-
-        sys.stdout.flush()

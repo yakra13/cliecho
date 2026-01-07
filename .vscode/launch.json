@@ -2,7 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug",
+            "name": "Debug (WSL)",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "module": "main",
+            "console": "integratedTerminal"
+        },
+                {
+            "name": "Debug (Linux)",
             "type": "python",
             "request": "launch",
             "cwd": "${workspaceFolder}",
