@@ -1,7 +1,9 @@
 """
 """
+import readline
 import shlex
 from queue import Queue
+import sys
 from threading import Event, Lock
 import threading
 import time
@@ -10,7 +12,7 @@ from typing import Callable, Optional, List, Dict, Sequence
 from core.command_registry import CommandNode, build_command_registry
 from core.dispatcher import Dispatcher
 from core.module_loader import ModuleLoader
-from core.output_formatter import format_show_modules
+from core.output_formatter import format_list_as_table
 from core.util.singleton import Singleton
 
 from shared.module_base import ModuleBase
@@ -40,7 +42,7 @@ class CLIManager(Singleton):
     def handle_show_modules(self, args: Sequence[str]) -> None:
         """ Handle show modules command. """
         # TODO: print out the available modules
-        message = format_show_modules(ModuleLoader().get_modules_list())
+        message = format_list_as_table(ModuleLoader().get_modules_list())
         LOGGER.console_raw("Available modules:\n" + message)
 
     def handle_show_options(self, args: Sequence[str]) -> None:
@@ -101,16 +103,18 @@ class CLIManager(Singleton):
     def handle_exit(self, args: Sequence[str]) -> None:
         """ Handle exit command. """
         # TODO: handle exit/current module exit
-        print(f"handle exit: {args}")
+        # print(f"handle exit: {args}")
         if Dispatcher().current_module:
             module_name = Dispatcher().current_module.name or "unknown module"
             Dispatcher().set_current_module(None)
             LOGGER.console_raw(f"Exited {module_name}")
             return
 
-        # TODO: 
+        # TODO: prep exit
+        sys.exit(0)
 
         # if Dispatcher().has_running_jobs():
+
 
 
     def handle_help(self, args: Sequence[str]) -> None:
@@ -203,3 +207,21 @@ class CLIManager(Singleton):
                 # break
 
             # time.sleep(0.1)
+
+    def display_matches_hook(self, substitution, matches, longest_match_length):
+        # TODO: custom formatter for auto complete suggestions
+        sys.stdout.write('\n')
+
+        if len(matches) > 4:
+            # Display as table
+            sys.stdout.write(format_list_as_table(matches, columns=4))
+        else:
+            # Display in single column
+            sys.stdout.write(format_list_as_table(matches)) # default 1 column
+            
+        # Redraw prompt and input        
+        # sys.stdout.write("\r\033[K")
+        sys.stdout.write('\n')
+        sys.stdout.write(self._get_prompt() + readline.get_line_buffer())
+
+        sys.stdout.flush()

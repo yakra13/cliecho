@@ -11,7 +11,7 @@ from typing import Any, Optional, Type, Dict, List
 
 from core.exceptions import NoModuleError
 from core.module_loader import ModuleLoader, ModulePreset
-from core.output_formatter import format_module_settings, format_show_modules
+from core.output_formatter import format_module_settings, format_list_as_table
 
 from core.util.singleton import Singleton
 from shared.module_base import ModuleBase
@@ -88,7 +88,7 @@ class Dispatcher(Singleton):
     def _cmd_show(self, args: List[str]) -> str:
         modules = ModuleLoader().get_modules_list()
 
-        return format_show_modules(modules)
+        return format_list_as_table(modules)
 
     def _cmd_use(self, args: List[str]) -> str:
         try:

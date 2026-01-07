@@ -2,10 +2,12 @@
 """
 import readline
 from dataclasses import dataclass, field
+import sys
 from typing import Callable, Dict, List, Optional
 # from typing import Dict, List, Optional
 
 # from core.command_registry import CommandNode, build_command_registry
+from core.cli_manager import CLIManager
 from core.dispatcher import Dispatcher
 # from core.module_loader import ModuleLoader
 from core.command_registry import CommandNode, build_command_registry
@@ -30,8 +32,10 @@ class Completer:
     @classmethod
     def setup(cls):
         """Prepares the command line for tab completions."""
+
         readline.set_completer(cls._completer)
         readline.parse_and_bind('tab: complete')
+        readline.set_completion_display_matches_hook(CLIManager().display_matches_hook)
 
     @classmethod
     def _compute_matches(cls, text: str) -> List[str]:
@@ -41,12 +45,21 @@ class Completer:
         registry: Dict[str, CommandNode] = build_command_registry()
 
         if len(parts) == 0 or (len(parts) == 1 and not line.endswith(" ")):
-            return [
-                c for c, node in registry.items()
-                if not node.module_only
-                and not Dispatcher().current_module
-                and c.lower().startswith(text.lower())
-            ]
+            valid_tokens: List[str] = []
+            for token, node in registry.items():
+                # If the node requires a module in use but there isnt one then skip
+                if node.module_only and not Dispatcher().current_module:
+                    continue
+
+                if token.lower().startswith(text.lower()):
+                    valid_tokens.append(token)
+
+            # valid_tokens = [
+            #     c for c, node in registry.items()
+            #     if not node.module_only and not Dispatcher().current_module
+            #     and c.lower().startswith(text.lower())
+            # ]
+            return valid_tokens
 
         cmd = parts[0]
         args = parts[1:]
@@ -83,7 +96,7 @@ class Completer:
                 cls._matches = cls._compute_matches(text)
 
         try:
-            return cls._matches[state]
+                return cls._matches[state]
         except IndexError:
             return None
 

@@ -1,9 +1,24 @@
 """
 """
+import math
 import shutil
 from typing import Dict, Tuple, Any, Optional, List
 
 from shared.module_base import ModuleArg
+
+def to_column_major(items: List[str], columns: int) -> List[str]:
+    if not items or columns <= 0:
+        return items
+    
+    rows = math.ceil(len(items) / columns)
+    result: List[str] = []
+    for r in range(rows):
+        for c in range(columns):
+            idx = c * rows + r
+            if idx < len(items):
+                result.append(items[idx])
+    
+    return result
 
 def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[Any]]]) -> str:
     """
@@ -16,30 +31,37 @@ def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[
     """
     raise NotImplementedError("format_module_settings: Not implemented")
 
-def format_show_modules(modules: List[str]) -> str:
+def format_list_as_table(items: List[str], columns: int = 1, auto_size: bool = False, column_major: bool = True) -> str:
     """
     Docstring for format_show_modules
-    
-    :param modules: Description
-    :type modules: List[str]
-    :return: Description
-    :rtype: str
     """
-    if not modules:
-        return ""
 
-    cols, _ = shutil.get_terminal_size()
+    if not items:
+        return ''
 
-    max_len = max(len(m) for m in modules) + 2
+    # Find the length of the longest item
+    # TODO: need to strip ANSI color codes for m
+    column_width = max(len(item) for item in items) + 2
 
-    items_per_row = max(1, cols // max_len)
+    if auto_size:
+        terminal_width, _ = shutil.get_terminal_size()
+        columns = max(1, terminal_width // column_width)
+
+    if column_major:
+        items = to_column_major(items, columns)
 
     # Print formatted
     lines = []
-    for i in range(0, len(modules), items_per_row):
-        row_items = modules[i:i + items_per_row]
-        line = "".join(item.ljust(max_len) for item in row_items)
-        lines.append(line.rstrip())  # remove trailing spaces
+    # TODO: support both (only first currently):
+    # a b c
+    # d e f
+    # and
+    # a c e
+    # b d f
+    for i in range(0, len(items), columns):
+        # TODO: the column problem is here
+        row_items = items[i:i + columns]
+        line = ''.join(item.ljust(column_width) for item in row_items)
+        lines.append(f"    {line.rstrip()}")  # remove trailing spaces
 
-    return "\n".join(lines)
-    # raise NotImplementedError("format_show_modules: Not implemented")
+    return '\n'.join(lines)
