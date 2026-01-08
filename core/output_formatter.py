@@ -2,23 +2,48 @@
 """
 import math
 import shutil
+import re
+
 from typing import Dict, Tuple, Any, Optional, List
 
 from shared.module_base import ModuleArg
+
+# Regex to remove ANSI escape characters from a string
+ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
 def to_column_major(items: List[str], columns: int) -> List[str]:
     if not items or columns <= 0:
         return items
     
     rows = math.ceil(len(items) / columns)
-    result: List[str] = []
-    for r in range(rows):
-        for c in range(columns):
-            idx = c * rows + r
+
+    grid: List[List[Optional[str]]] = [[None] * columns for _ in range(rows)]
+
+    # Fill column-major
+    idx = 0
+    for c in range(columns):
+        for r in range(rows):
             if idx < len(items):
-                result.append(items[idx])
+                grid[r][c] = items[idx]
+                idx += 1
+
+    result: List[str] = []
+    for row in grid:
+        for item in row:
+            result.append(item if item is not None else '')
+
+
+    # for r in range(rows):
+    #     for c in range(columns):
+    #         idx = c * rows + r
+    #         if idx < len(items):
+    #             result.append(items[idx])
     
     return result
+
+def visible_length(s: str) -> int:
+    # Remove ANSI escape characters for proper string length
+    return len(ANSI_RE.sub('', s))
 
 def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[Any]]]) -> str:
     """
@@ -39,9 +64,8 @@ def format_list_as_table(items: List[str], columns: int = 1, auto_size: bool = F
     if not items:
         return ''
 
-    # Find the length of the longest item
-    # TODO: need to strip ANSI color codes for m
-    column_width = max(len(item) for item in items) + 2
+    # Find the length of the longest item and 2 for spacing
+    column_width = max(visible_length(item) for item in items) + 2
 
     if auto_size:
         terminal_width, _ = shutil.get_terminal_size()
@@ -52,14 +76,8 @@ def format_list_as_table(items: List[str], columns: int = 1, auto_size: bool = F
 
     # Print formatted
     lines = []
-    # TODO: support both (only first currently):
-    # a b c
-    # d e f
-    # and
-    # a c e
-    # b d f
+
     for i in range(0, len(items), columns):
-        # TODO: the column problem is here
         row_items = items[i:i + columns]
         line = ''.join(item.ljust(column_width) for item in row_items)
         lines.append(f"    {line.rstrip()}")  # remove trailing spaces

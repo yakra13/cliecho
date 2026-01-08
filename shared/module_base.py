@@ -8,7 +8,7 @@ import yaml
 # from queue import Queue
 
 # from shared.module_logger import get_event_queue
-from shared.module_logger import LOGGER
+from shared.module_logger import LOGGER, BufferedSink, ImmediateSink
 # from shared.log_types import LogLevel, Event
 
 @dataclass
@@ -28,7 +28,7 @@ class ModuleBase:
     """
     Docstring for ModuleBase
     """
-    def __init__(self):
+    def __init__(self, threaded: bool = False):
         self._metadata = None
         self._module_args: Dict[str, ModuleArg] = {}
         self._name: str = ''
@@ -77,6 +77,11 @@ class ModuleBase:
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
 
+        # Register this module with the logger
+        if threaded:
+            LOGGER.register_module(self, BufferedSink())
+        else:
+            LOGGER.register_module(self, ImmediateSink())
         LOGGER.console_info("Finish __init__")
 
     @property

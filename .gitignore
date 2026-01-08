@@ -3,5 +3,5 @@ modules_working/*/build/
 modules_working/*/dist/
 modules_working/*/*.egg-info/
 __pycache__
-# *.egg-info/
+*.egg-info/
 # *.tar.gz

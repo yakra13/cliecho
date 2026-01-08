@@ -16,6 +16,7 @@ new_test_module = "new_test_module.__main__:main"
 [tool.setuptools]
 package-dir = { "" = "src" }
 include-package-data = true
+py-modules = ["__main__"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

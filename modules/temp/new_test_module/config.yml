@@ -1,0 +1,14 @@
+description: "new_test_module description"
+arguments:
+    required:
+        examplerequired:
+            description: "description"
+            default: "default_value"
+            help: "help text"
+            shortname: "?"
+
+    optional:
+        exampleoptional:
+            description: "description"
+            help: "help text"
+            shortname: "?"

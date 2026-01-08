@@ -9,7 +9,7 @@
             "module": "main",
             "console": "integratedTerminal"
         },
-                {
+        {
             "name": "Debug (Linux)",
             "type": "python",
             "request": "launch",

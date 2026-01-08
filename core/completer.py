@@ -118,6 +118,12 @@ class Completer:
         # TODO: custom formatter for auto complete suggestions
         sys.stdout.write('\n')
 
+        for i in range(0, len(matches)):
+            if i % 2 == 0:
+                matches[i] = f"\033[1;36;40m{matches[i]}\033[0m "
+            else:
+                matches[i] = f"\033[37m{matches[i]}\033[0m "
+
         if cls._flag_help:
             # Display help info for command flags
             sys.stdout.write(cls._flag_help)

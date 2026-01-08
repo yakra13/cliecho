@@ -11,7 +11,9 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from queue import Queue
 import threading
-from typing import Final, List, Optional
+from typing import Dict, Final, List, Optional
+
+from shared.module_base import ModuleBase
 
 from .log_types import EventLog, LogLevel
 from .module_context import ModuleContext
@@ -90,6 +92,30 @@ LOG_STYLE = {
     LogLevel.INFO: Color.FG.DEFAULT,
     LogLevel.DEBUG: Color.FG.CYAN,
 }
+from abc import ABC, abstractmethod
+class OutputSink(ABC):
+    @abstractmethod
+    def write(self, message: str) -> None:
+        pass
+from threading import Lock
+class BufferedSink(OutputSink):
+    def __init__(self):
+        self._lock = Lock()
+        self._buffer: List[str] = []
+
+    def write(self, message: str) -> None:
+        with self._lock:
+            self._buffer.append(message)
+
+    def flush(self) -> List[str]:
+        with self._lock:
+            data = self._buffer[:]
+            self._buffer.clear()
+        return data
+class ImmediateSink(OutputSink):
+    def write(self, message: str) -> None:
+        sys.stdout.write(message)
+        sys.stdout.flush()
 
 class _ModuleLogger:
     _username: str = getpass.getuser()
@@ -100,7 +126,14 @@ class _ModuleLogger:
         self._io_lock: threading.Lock = threading.Lock()
         # self.print_event: threading.Event
         self._console_raw_buffer: List[str] = []
+        self._buffers: Dict[str, List[str]] = {}
+        self._sinks: Dict[ModuleBase, OutputSink] = {}
+        self._default_sink: OutputSink = ImmediateSink() # fallback
     
+    # TODO: possible circular import with ModuleBase may need to "ModuleBase"
+    def register_module(self, module: ModuleBase, sink: OutputSink):
+        self._sinks[module] = sink
+
     def flush_console(self):
         """
         Docstring for flush_console
@@ -193,8 +226,26 @@ class _ModuleLogger:
         # with self._lock:
         #     self._write(EventLog(log_level=LogLevel.ERROR, message=message))
 
-    def console_raw(self, message:str) -> None:
+    def console_raw(self, message:str, module: ModuleBase | None = None) -> None:
         """Log directly to the console without formatting."""
+        print("in console raw")
+        if module is None:
+            # try to detect caller
+            import inspect
+            frame = inspect.currentframe()
+            caller = frame.f_back # type: ignore
+            module = caller.f_locals.get("self") # type: ignore
+            # check if is instance
+            # if called from a helper function or 
+            if module not in self._sinks:
+                sink = self._default_sink
+            else:
+                sink = self._sinks[module]
+        else:
+            sink = self._sinks.get(module, self._default_sink)
+
+        sink.write(message)
+        return
         # self.print_event.clear()
         with self._io_lock:
             self._console_raw_buffer.append(message)

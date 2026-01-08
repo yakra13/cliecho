@@ -13,19 +13,12 @@ from core.module_loader import ModuleLoader
 from shared.module_logger import LOGGER
 
 def display_logo() -> None:
-    print("""
-╔══════════╗
-║          ║
-║          ║
-║          ║
-║          ║
-║        ╔╗
-║       ╔╩╬╩╗
-╚══════ ╩═╣ ║
-          ╚═╝
-\033[31m
-\033[0m     
-""")
+    print("""\033[31m
+╔═════╗
+║   ╔╗║
+║  ╔╩╬╩╗
+╚═ ╩═╣ ║
+     ╚═╝\033[0m""")
 # █  Full block
 # ▓  Dark shade
 # ▒  Medium shade

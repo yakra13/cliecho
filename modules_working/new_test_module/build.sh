@@ -3,9 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-PYTHON=python3.8
+PYTHON="$(command -v python3)"
+#python3.8
 MODULE_NAME=$(basename "$PWD")
-echo "[*] Building wheel for $MODULE_NAME using $(python3 --version)"
+echo "[*] Building wheel for $MODULE_NAME using $("$PYTHON" --version)"
 
 # Clean old build artifacts
 rm -rf dist build *.egg-info
