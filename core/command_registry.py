@@ -35,10 +35,12 @@ def build_command_registry() -> Dict[str, CommandNode]:
             'options': CommandNode(handler='handle_show_options', module_only=True),
             'presets': CommandNode(handler='handle_show_presets', module_only=True),
             }),
-        'job' : CommandNode(
-            completer=lambda _: Dispatcher().get_job_ids(),
-            handler='handle_job'
-        ),
+        'job' : CommandNode(children={
+            'info': CommandNode(completer=lambda _: Dispatcher().get_job_ids(),
+                                handler='handle_job_info'),
+            'cancel': CommandNode(completer=lambda _: Dispatcher().get_job_ids(),
+                                  handler='handle_job_cancel')
+            }),
         'info': CommandNode(
             completer=lambda _: ModuleLoader().get_modules_list(),
             handler='handle_info'),
