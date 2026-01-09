@@ -6,9 +6,10 @@ from queue import Empty, Queue
 import time
 from typing import List
 
+from core.cli_manager import CLIManager
 from core.completer import Completer
 from core.dispatcher import Dispatcher
-from core.cli_manager import CLIManager
+from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
 from shared.module_logger import LOGGER
 
@@ -69,28 +70,41 @@ def main() -> None:
     display_logo()
     ModuleLoader().discover()
 
-    input_thread = threading.Thread(target=CLIManager().get_input,
-                                    args=(input_queue,), # io_lock, print_event,),
-                                    daemon=True)
+    # Setup user input in its own thread allowing module threads to run independantly
+    input_thread = threading.Thread(target=CLIManager().get_input, args=(input_queue,), daemon=True)
     input_thread.start()
 
     # Main program loop
     while True:
+        # Update (check status, fill queues etc)
         Dispatcher().poll_jobs()
-        # other stuff?
+        
+        # Get input is done in input_thread (CLIManager.get_input)
+        # Consume input
         try:
-            # Get user input
-            cmd = input_queue.get(timeout=0.1)
+            msg = input_queue.get(timeout=0.1)
         except Empty:
+            # Timeout reached and no input was received
             continue
+        
+        # Handle input
+        match msg:
+            case InputClosed():
+                # TODO: Input closed handle shutdown
+                break
+            case UserInterrupt():
+                # TODO: ctrl C cancel running jobs?
+                break # continue
+            case str():
+                # Process and handle user input
+                tokens: List[str] = CLIManager().tokenize(msg)
+                CLIManager().handle_command(tokens)
+            case _:
+                # unknown signal...
+                break
 
-        if cmd == "__EOF__":
-            break
-
-        # Process and handle user input
-        tokens: List[str] = CLIManager().tokenize(cmd)
-        CLIManager().handle_command(tokens)
-
+        # Output to the CLI happens last, we should be guranteed 
+        # that there is no user input entered into the console
         LOGGER.flush_console()
 
 

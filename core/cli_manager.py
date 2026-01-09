@@ -11,6 +11,7 @@ from typing import Callable, Optional, List, Dict, Sequence
 
 from core.command_registry import CommandNode, build_command_registry
 from core.dispatcher import Dispatcher
+from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
 from core.output_formatter import format_list_as_table
 from core.util.singleton import Singleton
@@ -38,6 +39,10 @@ class CLIManager(Singleton):
             return []
 
 #region Command Handlers
+    def handle_show_jobs(self, args: Sequence[str]) -> None:
+        """ Handle show jobs command. """
+        message = Dispatcher().list_running_jobs()
+        LOGGER.console_raw("Current jobs:\n" + message)
 
     def handle_show_modules(self, args: Sequence[str]) -> None:
         """ Handle show modules command. """
@@ -59,7 +64,7 @@ class CLIManager(Singleton):
         """ Handle info command. """
         # TODO: show info on specified module or current module if no args
         print(f"handle info: {args}")
-
+        
     def handle_use(self, args: Sequence[str]) -> None:
         """ Handle use command. """
         # TODO: set current module
@@ -193,10 +198,18 @@ class CLIManager(Singleton):
         :param self: Description
         """
         while True:
-            user_input = input(self.get_prompt())
-            queue.put(user_input)
-            if user_input == "__EOF__":
+            try:
+                user_input = input(self.get_prompt())
+            except EOFError:
+                # Captures Ctrl+D (Linux) or Ctrl+Z + Enter (Windows)
+                queue.put(InputClosed())
                 break
+            except KeyboardInterrupt:
+                # Capture Ctrl+C
+                queue.put(UserInterrupt())
+                break
+
+            queue.put(user_input)
             # print_event.wait()
             # try:
                 # with io_lock:

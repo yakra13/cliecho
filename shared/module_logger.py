@@ -18,18 +18,13 @@ from shared.module_base import ModuleBase
 from .log_types import EventLog, LogLevel
 from .module_context import ModuleContext
 
+# Context-local variables. Each module thread gets its own. Allows the logger to access the events
+# and module context data belonging to its specific module thread
 _current_queue: ContextVar[Optional[Queue]]          = ContextVar("current_queue", default=None)
 _module_context: ContextVar[Optional[ModuleContext]] = ContextVar("module_context", default=None)
 
 @contextmanager
 def module_event_queue(queue: Optional[Queue]):
-    """
-    Docstring for module_event_queue
-    
-    :param queue: Description
-    :type queue: Optional[Queue]
-    """
-    # _set_event_queue(queue)
     _current_queue.set(queue)
     try:
         yield
@@ -38,18 +33,11 @@ def module_event_queue(queue: Optional[Queue]):
 
 @contextmanager
 def module_logging_context(context: ModuleContext):
-    """
-    Docstring for module_logging_context
-    
-    :param context: Description
-    :type context: ModuleContext
-    """
-    # _set_module_context(context)
-    _module_context.set(context)
+    token = _module_context.set(context)
     try:
         yield
     finally:
-        _module_context.set(None)
+        _module_context.reset(token)
 
 class Color:
     RESET: Final[str]     = "\033[0m"
@@ -92,30 +80,31 @@ LOG_STYLE = {
     LogLevel.INFO: Color.FG.DEFAULT,
     LogLevel.DEBUG: Color.FG.CYAN,
 }
-from abc import ABC, abstractmethod
-class OutputSink(ABC):
-    @abstractmethod
-    def write(self, message: str) -> None:
-        pass
-from threading import Lock
-class BufferedSink(OutputSink):
-    def __init__(self):
-        self._lock = Lock()
-        self._buffer: List[str] = []
 
-    def write(self, message: str) -> None:
-        with self._lock:
-            self._buffer.append(message)
+# from abc import ABC, abstractmethod
+# class OutputSink(ABC):
+#     @abstractmethod
+#     def write(self, message: str) -> None:
+#         pass
+# from threading import Lock
+# class BufferedSink(OutputSink):
+#     def __init__(self):
+#         self._lock = Lock()
+#         self._buffer: List[str] = []
 
-    def flush(self) -> List[str]:
-        with self._lock:
-            data = self._buffer[:]
-            self._buffer.clear()
-        return data
-class ImmediateSink(OutputSink):
-    def write(self, message: str) -> None:
-        sys.stdout.write(message)
-        sys.stdout.flush()
+#     def write(self, message: str) -> None:
+#         with self._lock:
+#             self._buffer.append(message)
+
+#     def flush(self) -> List[str]:
+#         with self._lock:
+#             data = self._buffer[:]
+#             self._buffer.clear()
+#         return data
+# class ImmediateSink(OutputSink):
+#     def write(self, message: str) -> None:
+#         sys.stdout.write(message)
+#         sys.stdout.flush()
 
 class _ModuleLogger:
     _username: str = getpass.getuser()
@@ -127,35 +116,33 @@ class _ModuleLogger:
         # self.print_event: threading.Event
         self._console_raw_buffer: List[str] = []
         self._buffers: Dict[str, List[str]] = {}
-        self._sinks: Dict[ModuleBase, OutputSink] = {}
-        self._default_sink: OutputSink = ImmediateSink() # fallback
+        # self._sinks: Dict[ModuleBase, OutputSink] = {}
+        # self._default_sink: OutputSink = ImmediateSink() # fallback
     
     # TODO: possible circular import with ModuleBase may need to "ModuleBase"
-    def register_module(self, module: ModuleBase, sink: OutputSink):
-        self._sinks[module] = sink
+    # def register_module(self, module: ModuleBase, sink: OutputSink):
+    #     self._sinks[module] = sink
 
-    def flush_console(self):
-        """
-        Docstring for flush_console
+    # def flush_console(self):
+    #     """
+    #     Docstring for flush_console
         
-        :param self: Description
-        """
+    #     :param self: Description
+    #     """
 
-        with self._io_lock:
-            try:
-                for message in self._console_raw_buffer:
-                    sys.stdout.write(message + '\n')
-                sys.stdout.flush()
-            finally:
-                # Empty the message buffer
-                self._console_raw_buffer.clear()
+    #     with self._io_lock:
+    #         try:
+    #             for message in self._console_raw_buffer:
+    #                 sys.stdout.write(message + '\n')
+    #             sys.stdout.flush()
+    #         finally:
+    #             # Empty the message buffer
+    #             self._console_raw_buffer.clear()
 
     def _format_timestamp(self, timestamp: datetime) -> str:
-
         return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
     def _prepare_event_data(self, event: EventLog) -> None:
-
         if event.username is None:
             event.username = self._username
 
@@ -194,13 +181,7 @@ class _ModuleLogger:
         # self.print_event.set()
 
     def log_info(self, message: str) -> None:
-        """
-        Docstring for info
-        
-        :param self: Description
-        :param message: Description
-        :type message: str
-        """
+        """Docstring for info"""
         # with self._lock:
         #     self._write(EventLog(log_level=LogLevel.INFO, message=message))
 
@@ -229,23 +210,23 @@ class _ModuleLogger:
     def console_raw(self, message:str, module: ModuleBase | None = None) -> None:
         """Log directly to the console without formatting."""
         print("in console raw")
-        if module is None:
-            # try to detect caller
-            import inspect
-            frame = inspect.currentframe()
-            caller = frame.f_back # type: ignore
-            module = caller.f_locals.get("self") # type: ignore
-            # check if is instance
-            # if called from a helper function or 
-            if module not in self._sinks:
-                sink = self._default_sink
-            else:
-                sink = self._sinks[module]
-        else:
-            sink = self._sinks.get(module, self._default_sink)
+        # if module is None:
+        #     # try to detect caller
+        #     import inspect
+        #     frame = inspect.currentframe()
+        #     caller = frame.f_back # type: ignore
+        #     module = caller.f_locals.get("self") # type: ignore
+        #     # check if is instance
+        #     # if called from a helper function or 
+        #     if module not in self._sinks:
+        #         sink = self._default_sink
+        #     else:
+        #         sink = self._sinks[module]
+        # else:
+        #     sink = self._sinks.get(module, self._default_sink)
 
-        sink.write(message)
-        return
+        # sink.write(message)
+        # return
         # self.print_event.clear()
         with self._io_lock:
             self._console_raw_buffer.append(message)

@@ -56,7 +56,10 @@ def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[
     """
     raise NotImplementedError("format_module_settings: Not implemented")
 
-def format_list_as_table(items: List[str], columns: int = 1, auto_size: bool = False, column_major: bool = True) -> str:
+def format_list_as_table(items: List[str],
+                         columns: int = 1,
+                         auto_size: bool = False,
+                         column_major: bool = True) -> str:
     """
     Docstring for format_show_modules
     """

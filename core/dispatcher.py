@@ -70,11 +70,10 @@ class Dispatcher(Singleton):
 
         event_queue: Queue = Queue()
 
-        module_context: ModuleContext = ModuleContext(name=module.name,
-                                                      options=module.get_settings())
+        context: ModuleContext = ModuleContext(name=module.name, options=module.get_settings())
 
         def run_module_thread():
-            with module_event_queue(event_queue), module_logging_context(module_context):
+            with module_event_queue(event_queue), module_logging_context(context):
                 module.run()
 
         t = threading.Thread(target=run_module_thread)
@@ -113,9 +112,33 @@ class Dispatcher(Singleton):
 
         return f"Set {args[0]} to '{args[1]}'" # TODO
 
+    def get_job_ids(self) -> List[str]:
+        """Returns a sorted list of running job ids."""
+        ids = list(self._running_jobs.keys())
+        ids.sort()
+        return ids
+
     def has_running_jobs(self) -> bool:
-        """Check if any jobs are currently running."""
+        """
+        Check if any jobs are currently running.
+        
+        Returns: True if there are running jobs
+        """
         return bool(self._running_jobs)
+
+    def list_running_jobs(self) -> str:
+        if not self.has_running_jobs:
+            return "There are no jobs"
+
+        jobs_data: List[str] = ["ID", "Status", "Module", "Messages"]
+
+        for _, job in self._running_jobs.items():
+            jobs_data.append(job.id)
+            jobs_data.append("Running" if job.thread.is_alive() else "Finished")
+            jobs_data.append(job.module.name)
+            jobs_data.append(str(job.queue.qsize()))
+
+        return format_list_as_table(jobs_data, auto_size=True, column_major=False)
 
     def update_module_presets(self) -> None:
         if self._current_module is None:
@@ -252,9 +275,12 @@ class Dispatcher(Singleton):
         """
         if self._current_module is None:
             raise NoModuleError()
+        
+        # TODO: check if name is in presets
+        # return description and value settings
 
         for preset in self._presets:
-            if str(preset.get('preset_name')).lower() == preset_name.lower():
+            if preset.preset_name.lower() == preset_name.lower():
                 lines = [
                     f"{preset.get('preset_name', '<No Name>')}",
                     f"{preset.get('description', '<No Description>')}"

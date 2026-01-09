@@ -30,10 +30,15 @@ class CommandNode:
 def build_command_registry() -> Dict[str, CommandNode]:
     return {
         'show': CommandNode(children={
+            'jobs': CommandNode(handler='handle_show_jobs'),
             'modules': CommandNode(handler='handle_show_modules'),
             'options': CommandNode(handler='handle_show_options', module_only=True),
-            'presets': CommandNode(handler='handle_show_presets', module_only=True)
+            'presets': CommandNode(handler='handle_show_presets', module_only=True),
             }),
+        'job' : CommandNode(
+            completer=lambda _: Dispatcher().get_job_ids(),
+            handler='handle_job'
+        ),
         'info': CommandNode(
             completer=lambda _: ModuleLoader().get_modules_list(),
             handler='handle_info'),
