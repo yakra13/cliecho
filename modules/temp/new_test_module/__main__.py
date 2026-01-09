@@ -17,6 +17,8 @@ def main():
         options=mod.get_settings() if hasattr(mod, "get_current_settings") else {}
     )
 
+    # NOTE: no module_event_queue called so LOGGER.log functions should immediately print
+    # to the console?
     with module_logging_context(context):
         LOGGER.log_info("Begin Execution")
         mod.run()
