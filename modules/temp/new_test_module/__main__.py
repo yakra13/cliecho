@@ -20,7 +20,7 @@ def main():
     # NOTE: no module_event_queue called so LOGGER.log functions should immediately print
     # to the console?
     with module_logging_context(context):
-        LOGGER.log_info("Begin Execution")
+        LOGGER.log_info(f"Begin Execution: {context.name}")
         mod.run()
 
 def show_help():
