@@ -6,6 +6,7 @@ import re
 
 from typing import Dict, Tuple, Any, Optional, List
 
+from shared.log_types import EventLog
 from shared.module_base import ModuleArg
 
 # Regex to remove ANSI escape characters from a string
@@ -86,3 +87,9 @@ def format_list_as_table(items: List[str],
         lines.append(f"    {line.rstrip()}")  # remove trailing spaces
 
     return '\n'.join(lines)
+
+# def format_console_event_output(event: EventLog) -> str:
+#     output: str = ''
+#     # TODO
+
+#     return output

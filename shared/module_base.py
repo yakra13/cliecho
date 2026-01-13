@@ -8,7 +8,7 @@ import yaml
 # from queue import Queue
 
 # from shared.module_logger import get_event_queue
-from shared.module_logger import LOGGER, BufferedSink, ImmediateSink
+from shared.module_logger import LOGGER #, BufferedSink, ImmediateSink
 # from shared.log_types import LogLevel, Event
 
 @dataclass
@@ -77,11 +77,6 @@ class ModuleBase:
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
 
-        # Register this module with the logger
-        if threaded:
-            LOGGER.register_module(self, BufferedSink())
-        else:
-            LOGGER.register_module(self, ImmediateSink())
         LOGGER.console_info("Finish __init__")
 
     @property

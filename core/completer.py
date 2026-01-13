@@ -13,6 +13,8 @@ from core.dispatcher import Dispatcher
 from core.command_registry import CommandNode, build_command_registry
 from core.output_formatter import format_list_as_table
 
+CompleterFn = Callable[[str, int], Optional[str]]
+
 # from core.dispatcher import Dispatcher
 
 # @dataclass
@@ -30,14 +32,20 @@ class Completer:
     """Handles command tab completion and cli setup."""
     _matches: list[str] = []
     _flag_help: Optional[str] = None
+    _original_completer: Optional[CompleterFn] = None
 
     @classmethod
     def setup(cls):
         """Prepares the command line for tab completions."""
-
+        cls._original_completer = readline.get_completer()
         readline.set_completer(cls._completer)
         readline.parse_and_bind('tab: complete')
         readline.set_completion_display_matches_hook(cls._display_matches_hook)
+
+    @classmethod
+    def teardown(cls):
+        if cls._original_completer is not None:
+            readline.set_completer(cls._original_completer)
 
     @classmethod
     def _compute_matches(cls, text: str) -> List[str]:

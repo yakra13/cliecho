@@ -55,7 +55,7 @@ class LogManager:
 
 
     def warn(self, message: str) -> None:
-        self._log(LogLevel.WARNING, message)
+        self._log(LogLevel.WARN, message)
 
     def info(self, message: str) -> None:
         self._log(LogLevel.INFO, message)

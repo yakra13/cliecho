@@ -1,6 +1,7 @@
 """
 TODO: docstring
 """
+from pathlib import Path
 import threading
 from queue import Empty, Queue
 import time
@@ -105,7 +106,8 @@ def main() -> None:
 
         # Output to the CLI happens last, we should be guranteed 
         # that there is no user input entered into the console
-        LOGGER.flush_console()
+        # LOGGER.flush_console()
+        Completer.teardown() # TODO: place this where exit cleanup happens
 
 
 if __name__ == "__main__":

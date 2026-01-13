@@ -1,43 +1,45 @@
 """
 """
-from dataclasses import dataclass
-from datetime import datetime
 import getpass
+import json
 import readline
 import socket
 import sys
+import threading
 
 from contextlib import contextmanager
 from contextvars import ContextVar
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 from queue import Queue
-import threading
 from typing import Dict, Final, List, Optional
 
-from shared.module_base import ModuleBase
+# from shared.module_base import ModuleBase
 
-from .log_types import EventLog, LogLevel
+from .log_types import EventLog, LogLevel, EventChannel
 from .module_context import ModuleContext
 
 # Context-local variables. Each module thread gets its own. Allows the logger to access the events
 # and module context data belonging to its specific module thread
-_current_queue: ContextVar[Optional[Queue]]          = ContextVar("current_queue", default=None)
-_module_context: ContextVar[Optional[ModuleContext]] = ContextVar("module_context", default=None)
+_CURRENT_EVENT_QUEUE: ContextVar[Optional[Queue]]           = ContextVar("current_queue", default=None)
+_CURRENT_MODULE_CONTEXT: ContextVar[Optional[ModuleContext]] = ContextVar("module_context", default=None)
 
 @contextmanager
 def module_event_queue(queue: Optional[Queue]):
-    _current_queue.set(queue)
+    token = _CURRENT_EVENT_QUEUE.set(queue)
     try:
         yield
     finally:
-        _current_queue.set(None)
+        _CURRENT_EVENT_QUEUE.reset(token)
 
 @contextmanager
 def module_logging_context(context: ModuleContext):
-    token = _module_context.set(context)
+    token = _CURRENT_MODULE_CONTEXT.set(context)
     try:
         yield
     finally:
-        _module_context.reset(token)
+        _CURRENT_MODULE_CONTEXT.reset(token)
 
 class Color:
     RESET: Final[str]     = "\033[0m"
@@ -76,197 +78,178 @@ class Color:
 
 LOG_STYLE = {
     LogLevel.ERROR: Color.FG.RED + Color.STYLE.BOLD,
-    LogLevel.WARNING: Color.FG.YELLOW,
+    LogLevel.WARN: Color.FG.YELLOW,
     LogLevel.INFO: Color.FG.DEFAULT,
     LogLevel.DEBUG: Color.FG.CYAN,
 }
 
-# from abc import ABC, abstractmethod
-# class OutputSink(ABC):
-#     @abstractmethod
-#     def write(self, message: str) -> None:
-#         pass
-# from threading import Lock
-# class BufferedSink(OutputSink):
-#     def __init__(self):
-#         self._lock = Lock()
-#         self._buffer: List[str] = []
-
-#     def write(self, message: str) -> None:
-#         with self._lock:
-#             self._buffer.append(message)
-
-#     def flush(self) -> List[str]:
-#         with self._lock:
-#             data = self._buffer[:]
-#             self._buffer.clear()
-#         return data
-# class ImmediateSink(OutputSink):
-#     def write(self, message: str) -> None:
-#         sys.stdout.write(message)
-#         sys.stdout.flush()
 
 class _ModuleLogger:
+    # Gather username and hostname for use in logs
     _username: str = getpass.getuser()
     _hostname: str = socket.gethostname()
 
     def __init__(self):
-        # self._lock = threading.Lock()
         self._io_lock: threading.Lock = threading.Lock()
-        # self.print_event: threading.Event
-        self._console_raw_buffer: List[str] = []
-        self._buffers: Dict[str, List[str]] = {}
-        # self._sinks: Dict[ModuleBase, OutputSink] = {}
-        # self._default_sink: OutputSink = ImmediateSink() # fallback
-    
-    # TODO: possible circular import with ModuleBase may need to "ModuleBase"
-    # def register_module(self, module: ModuleBase, sink: OutputSink):
-    #     self._sinks[module] = sink
+        self._log_path: Path = Path.home() / "RE/logs"
 
-    # def flush_console(self):
-    #     """
-    #     Docstring for flush_console
-        
-    #     :param self: Description
-    #     """
-
-    #     with self._io_lock:
-    #         try:
-    #             for message in self._console_raw_buffer:
-    #                 sys.stdout.write(message + '\n')
-    #             sys.stdout.flush()
-    #         finally:
-    #             # Empty the message buffer
-    #             self._console_raw_buffer.clear()
+        if not self._log_path.exists():
+            try:
+                self._log_path.mkdir(parents=True, exist_ok=True)
+            except PermissionError as e:
+                raise RuntimeError(f"Cannot create log directory '{self._log_path}': {e}") from e
+            except OSError as e:
+                raise RuntimeError(f"Error creating log directory '{self._log_path}': {e}") from e
 
     def _format_timestamp(self, timestamp: datetime) -> str:
-        return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        return timestamp.strftime("%Y-%m-%d %H:%M:%S") #TODO this is .isoformat()
+
+    def _format_console_output(self, event: EventLog) -> str:
+        # TODO
+        # ts LogLevel ModuleName Message
+        ts = Color.STYLE.DIM + event.timestamp.isoformat()
+        
+        output: str = ''
+        output += Color.STYLE.DIM
+        output += event.timestamp.isoformat()
+        output += f"{event.module_name}"
+        return ''
 
     def _prepare_event_data(self, event: EventLog) -> None:
+        """Populates event data with username, hostname, module settings."""
         if event.username is None:
             event.username = self._username
 
         if event.hostname is None:
             event.hostname = self._hostname
 
-        if module_context := _module_context.get():
+        if module_context := _CURRENT_MODULE_CONTEXT.get():
             event.module_name = module_context.name
             event.module_options = module_context.options
 
-    def _write(self, event: EventLog) -> None:
+
+
+        # TODO: custom formatting option instead of static?
+        # ts = Color.STYLE.DIM + self._format_timestamp(event.timestamp)
+
+        # module = '{' + (event.module_name or 'unknown') + '}' + Color.RESET
+
+        # message = "{}[{}] {}{}".format(LOG_STYLE.get(event.log_level, Color.FG.DEFAULT),
+        #                                   event.log_level.name,
+        #                                   event.message,
+        #                                   Color.RESET)
+
+        # event.formatted_message = f"{ts} {module} {message}"
+
+    def _emit_event(self, event: EventLog) -> None:
+        """Emit event on their associated channel"""
+        # self._prepare_console_event_data(event)
+        # TODO: determine dest file
+        # This function should only handle these log levels
+
+        # if event.channel == EventChannel.CONSOLE:
+        #     if __debug__:
+        #         raise ValueError(f"Attempt to log console message to log file: {event}")
+
+        #     e = EventLog(log_level=LogLevel.ERROR,
+        #                  channel=EventChannel.LOG,
+        #                  message="Internal logging misuse: console-only log bound to file log",
+        #                  metadata={"original_level": event.log_level.name,
+        #                            "original_message": event.message,
+        #                            "original_timestamp": event.timestamp
+        #                            })
+        #     event = e
+                
         self._prepare_event_data(event)
 
         # If an event queue is present let the core handle logging
-        if event_queue := _current_queue.get():
+        if event_queue := _CURRENT_EVENT_QUEUE.get():
             event_queue.put(event)
+            return
+
+        # Execution is standalone; handle write immediately
+        if event.channel == EventChannel.LOG:
+            # write to file
+            # TODO: determine path, standalone execution need to log to some common
+            # per module path. Perhaps ~/.redecho/logs/module_name/*.log
+            # And the redcho prime log: ~/.redecho/logs/redecho.log
+            # ~/.re/logs
+            # /var/logs/re
+            # %LOCALAPPDATA%\RE\logs
+            module_name: str = event.module_name or "unknown_module"
+            log_path: Path = self._log_path / module_name
+            log_file: Path = log_path / f"{module_name}.log"
+
+            if not log_path.exists():
+                try:
+                    log_path.mkdir(parents=True, exist_ok=True)
+                except PermissionError as e:
+                    raise RuntimeError(f"Cannot create log directory '{log_path}': {e}") from e
+                except OSError as e:
+                    raise RuntimeError(f"Error creating log directory '{log_path}': {e}") from e
+            
+            with open(log_file, "a", encoding="utf-8") as file:
+                json.dump(event.to_dict(), file)
+                file.write("\n")
+
+        elif event.channel == EventChannel.CONSOLE:
+            # write to stdout
+            sys.stdout.write(self._format_console_output(event))
+            sys.stdout.flush()
         else:
-            # Standalone logging
-            # TODO: write to a per module log
-            pass
+            raise NotImplementedError(f"Call to write unimplemented log channel: {event.channel.name}")
 
-    def _console_write(self, event: EventLog) -> None:
-        self._prepare_event_data(event)
 
-        ts = Color.STYLE.DIM + self._format_timestamp(event.timestamp)
+    # def _console_write(self, event: EventLog) -> None:
+    #     """Handles writes to console."""
+    #     # Prepare the message with appropriate log level formatting
+    #     self._prepare_event_data(event)
 
-        module = '{' + (event.module_name or 'unknown') + '}' + Color.RESET
+    #     if event_queue := _CURRENT_EVENT_QUEUE.get():
+    #         event_queue.put(event)
+    #     else:
+    #         # No event queue so we log to console immediately
+    #         sys.stdout.write(event.message)
+    #         sys.stdout.flush()
 
-        message = "{}[{}] {}{}".format(LOG_STYLE.get(event.log_level, Color.FG.DEFAULT),
-                                          event.log_level.name,
-                                          event.message,
-                                          Color.RESET)
-        # self.print_event.clear()
-        with self._io_lock:
-            print(f'{ts} {module} {message}')
-        # self.print_event.set()
+    #     # self.print_event.clear()
+    #     with self._io_lock:
+    #         print(f'{ts} {module} {message}')
+    #     # self.print_event.set()
 
     def log_info(self, message: str) -> None:
-        """Docstring for info"""
-        # with self._lock:
-        #     self._write(EventLog(log_level=LogLevel.INFO, message=message))
+        """Log info event to file"""
+        event = EventLog(log_level=LogLevel.INFO, channel=EventChannel.LOG, message=message)
+        self._emit_event(event)
 
     def log_warn(self, message: str) -> None:
-        """
-        Docstring for info
-        
-        :param self: Description
-        :param message: Description
-        :type message: str
-        """
-        # with self._lock:
-        #     self._write(EventLog(log_level=LogLevel.WARNING, message=message))
+        """Log warning event to file"""
+        event = EventLog(log_level=LogLevel.WARN, channel=EventChannel.LOG, message=message)
+        self._emit_event(event)
 
     def log_error(self, message: str) -> None:
-        """
-        Docstring for info
+        """Log error event to file"""
+        event = EventLog(log_level=LogLevel.ERROR, channel=EventChannel.LOG, message=message)
+        self._emit_event(event)
+
+    def console_raw(self, message:str) -> None:
+        """Log unformatted message to console"""
+        event = EventLog(log_level=LogLevel.RAW, channel=EventChannel.CONSOLE, message=message)
+        self._emit_event(event)
         
-        :param self: Description
-        :param message: Description
-        :type message: str
-        """
-        # with self._lock:
-        #     self._write(EventLog(log_level=LogLevel.ERROR, message=message))
-
-    def console_raw(self, message:str, module: ModuleBase | None = None) -> None:
-        """Log directly to the console without formatting."""
-        print("in console raw")
-        # if module is None:
-        #     # try to detect caller
-        #     import inspect
-        #     frame = inspect.currentframe()
-        #     caller = frame.f_back # type: ignore
-        #     module = caller.f_locals.get("self") # type: ignore
-        #     # check if is instance
-        #     # if called from a helper function or 
-        #     if module not in self._sinks:
-        #         sink = self._default_sink
-        #     else:
-        #         sink = self._sinks[module]
-        # else:
-        #     sink = self._sinks.get(module, self._default_sink)
-
-        # sink.write(message)
-        # return
-        # self.print_event.clear()
-        with self._io_lock:
-            self._console_raw_buffer.append(message)
-            # print(message, flush=True)
-            # sys.stdout.write('\n')
-            # sys.stdout.write(message + '\n')
-        # self.print_event.set()
-
-
     def console_info(self, message:str) -> None:
-        """
-        Docstring for console_info
-        
-        :param self: Description
-        :param message: Description
-        :type message: str
-        """
-        # with self._lock:
-        #     self._console_write(EventLog(log_level=LogLevel.INFO, message=message))
+        """Log formatted info event to console"""
+        event = EventLog(log_level=LogLevel.INFO, channel=EventChannel.CONSOLE, message=message)
+        self._emit_event(event)
 
     def console_warn(self, message: str) -> None:
-        """
-        Docstring for console_warn
-        
-        :param self: Description
-        :param message: Description
-        :type message: str
-        """
-        # with self._lock:
-        #     self._console_write(EventLog(log_level=LogLevel.WARNING, message=message))
+        """Log formatted warning event to console"""
+        event = EventLog(log_level=LogLevel.WARN, channel=EventChannel.CONSOLE, message=message)
+        self._emit_event(event)
 
     def console_error(self, message: str) -> None:
-        """
-        Docstring for console_error
-        
-        :param self: Description
-        :param message: Description
-        :type message: str
-        """
-        # with self._lock:
-        #     self._console_write(EventLog(log_level=LogLevel.ERROR, message=message))
+        """Log formatted error event to console"""
+        event = EventLog(log_level=LogLevel.ERROR, channel=EventChannel.CONSOLE, message=message)
+        self._emit_event(event)
 
 LOGGER = _ModuleLogger()
