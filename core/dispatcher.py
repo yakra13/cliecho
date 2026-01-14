@@ -11,7 +11,7 @@ from typing import Any, Optional, Type, Dict, List
 
 from core.exceptions import NoModuleError
 from core.module_loader import ModuleLoader, ModulePreset
-from core.output_formatter import format_module_settings, format_list_as_table
+from core.output_formatter import format_module_settings, format_list_as_grid
 
 from core.util.singleton import Singleton
 from shared.module_base import ModuleBase
@@ -87,7 +87,7 @@ class Dispatcher(Singleton):
     def _cmd_show(self, args: List[str]) -> str:
         modules = ModuleLoader().get_modules_list()
 
-        return format_list_as_table(modules)
+        return format_list_as_grid(modules)
 
     def _cmd_use(self, args: List[str]) -> str:
         try:
@@ -138,7 +138,7 @@ class Dispatcher(Singleton):
             jobs_data.append(job.module.name)
             jobs_data.append(str(job.queue.qsize()))
 
-        return format_list_as_table(jobs_data, auto_size=True, column_major=False)
+        return format_list_as_grid(jobs_data, auto_size=True, column_major=False)
 
     def update_module_presets(self) -> None:
         if self._current_module is None:

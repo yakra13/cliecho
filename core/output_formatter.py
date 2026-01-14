@@ -57,7 +57,7 @@ def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[
     """
     raise NotImplementedError("format_module_settings: Not implemented")
 
-def format_list_as_table(items: List[str],
+def format_list_as_grid(items: List[str],
                          columns: int = 1,
                          auto_size: bool = False,
                          column_major: bool = True) -> str:
@@ -68,7 +68,7 @@ def format_list_as_table(items: List[str],
     if not items:
         return ''
 
-    # Find the length of the longest item and 2 for spacing
+    # Find the length of the longest item add 2 for spacing
     column_width = max(visible_length(item) for item in items) + 2
 
     if auto_size:
@@ -93,3 +93,12 @@ def format_list_as_table(items: List[str],
 #     # TODO
 
 #     return output
+'''
+┌────────┬────────┐
+│\033[1mColumn 1\033[0m│\033[1mColumn 2\033[0m│
+├────────┼────────┤
+│Value 1 │ Value 2│
+├────────┼────────┤
+│\033[47;30mValue 3 │ Value 4\033[0m│
+└────────┴────────┘
+'''

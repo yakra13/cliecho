@@ -13,7 +13,7 @@ from core.command_registry import CommandNode, build_command_registry
 from core.dispatcher import Dispatcher
 from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
-from core.output_formatter import format_list_as_table
+from core.output_formatter import format_list_as_grid
 from core.util.singleton import Singleton
 
 from shared.module_base import ModuleBase
@@ -47,7 +47,7 @@ class CLIManager(Singleton):
     def handle_show_modules(self, args: Sequence[str]) -> None:
         """ Handle show modules command. """
         # TODO: print out the available modules
-        message = format_list_as_table(ModuleLoader().get_modules_list())
+        message = format_list_as_grid(ModuleLoader().get_modules_list())
         LOGGER.console_raw("Available modules:\n" + message)
 
     def handle_show_options(self, args: Sequence[str]) -> None:

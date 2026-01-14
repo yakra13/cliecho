@@ -11,7 +11,7 @@ from core.cli_manager import CLIManager
 from core.dispatcher import Dispatcher
 # from core.module_loader import ModuleLoader
 from core.command_registry import CommandNode, build_command_registry
-from core.output_formatter import format_list_as_table
+from core.output_formatter import format_list_as_grid
 
 CompleterFn = Callable[[str, int], Optional[str]]
 
@@ -138,10 +138,10 @@ class Completer:
             cls._flag_help = None
         elif len(matches) > 4:
             # Display as table
-            sys.stdout.write(format_list_as_table(matches, columns=4))
+            sys.stdout.write(format_list_as_grid(matches, columns=4))
         else:
             # Display in single column
-            sys.stdout.write(format_list_as_table(matches)) # default 1 column
+            sys.stdout.write(format_list_as_grid(matches)) # default 1 column
             
         # Redraw prompt and input        
         # sys.stdout.write("\r\033[K")
