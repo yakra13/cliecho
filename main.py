@@ -46,7 +46,7 @@ def display_logo() -> None:
 # ╬
 # ╓ ╖ ╙ ╜
 # ╒ ╕ ╘ ╛
-# ╞ ╡ ╤ ╧
+# ╞ ╡ ╤ ╧ ╟ ╢
 
 def main() -> None:
     """
