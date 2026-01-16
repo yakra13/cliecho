@@ -208,7 +208,6 @@ class CLIManager(Singleton):
                 # Capture Ctrl+C
                 queue.put(UserInterrupt())
                 break
-
             queue.put(user_input)
             # print_event.wait()
             # try:

@@ -16,11 +16,14 @@ from pathlib import Path
 from queue import Queue
 from typing import Dict, Final, Iterable, List, Literal, Optional
 
+
 # from shared.module_base import ModuleBase
 
-from .log_types import EventLog, LogLevel, EventChannel
-from .module_context import ModuleContext
-from .formatter import Color, FGColor, color_text
+from shared.ansi import AnsiStyle
+from shared.log_types import EventLog, LogLevel, EventChannel
+from shared.module_context import ModuleContext
+from shared.color import Color
+from shared.formatter import style_text #Color, FGColor, color_text
 
 # Context-local variables. Each module thread gets its own. Allows the logger to access the events
 # and module context data belonging to its specific module thread
@@ -63,27 +66,30 @@ class _ModuleLogger:
 
     def _format_console_output(self, event: EventLog) -> str:
         # TODO: defined colorization options from config file?
-        level_color: FGColor = Color.FG.DEFAULT
+        if event.log_level == LogLevel.RAW:
+            return event.message
+
+        log_level_color: Optional[Color] = None
 
         match event.log_level:
             case LogLevel.ERROR:
-                level_color = Color.FG.RED
+                log_level_color = Color.Red
             case LogLevel.WARN:
-                level_color = Color.FG.YELLOW
+                log_level_color = Color.Yellow
             case LogLevel.DEBUG:
-                level_color = Color.FG.CYAN
+                log_level_color = Color.Cyan
 
-        timestamp = color_text(text=event.timestamp.isoformat(),
-                               styles=[Color.Style.DIM])
+        timestamp = style_text(text=event.timestamp.isoformat(),
+                               styles=[AnsiStyle.DIM])
 
-        level = color_text(text=event.log_level.name,
-                           text_color=level_color,
-                           styles=[Color.Style.BOLD])
-
-        module = color_text(text=f"[{(event.module_name or 'unknown')}]",
-                            text_color=Color.FG.BLACK,
-                            back_color=Color.BG.WHITE,
-                            styles=[Color.Style.DIM])
+        module = style_text(text=f"[{(event.module_name or 'unknown')}]",
+                            text_color=Color.Black,
+                            back_color=Color.DarkGray,
+                            styles=[AnsiStyle.DIM])
+        
+        level = style_text(text=event.log_level.name,
+                           text_color=log_level_color,
+                           styles=[AnsiStyle.BOLD])
         
         return f"{timestamp} {module} {level} {event.message}"
 
@@ -141,37 +147,52 @@ class _ModuleLogger:
 
     def log_info(self, message: str) -> None:
         """Log info event to file"""
-        event = EventLog(log_level=LogLevel.INFO, channel=EventChannel.LOG, message=message)
+        event = EventLog(log_level=LogLevel.INFO,
+                         channel=EventChannel.LOG,
+                         message=message)
         self._emit_event(event)
 
     def log_warn(self, message: str) -> None:
         """Log warning event to file"""
-        event = EventLog(log_level=LogLevel.WARN, channel=EventChannel.LOG, message=message)
+        event = EventLog(log_level=LogLevel.WARN,
+                         channel=EventChannel.LOG,
+                         message=message)
         self._emit_event(event)
 
     def log_error(self, message: str) -> None:
         """Log error event to file"""
-        event = EventLog(log_level=LogLevel.ERROR, channel=EventChannel.LOG, message=message)
+        event = EventLog(log_level=LogLevel.ERROR,
+                         channel=EventChannel.LOG,
+                         message=message)
         self._emit_event(event)
 
     def console_raw(self, message:str) -> None:
         """Log unformatted message to console"""
-        event = EventLog(log_level=LogLevel.RAW, channel=EventChannel.CONSOLE, message=message)
+        event = EventLog(log_level=LogLevel.RAW,
+                         channel=EventChannel.CONSOLE,
+                         message=message)
         self._emit_event(event)
         
     def console_info(self, message:str) -> None:
         """Log formatted info event to console"""
-        event = EventLog(log_level=LogLevel.INFO, channel=EventChannel.CONSOLE, message=message)
+        event = EventLog(log_level=LogLevel.INFO,
+                         channel=EventChannel.CONSOLE,
+                         message=message)
         self._emit_event(event)
 
     def console_warn(self, message: str) -> None:
         """Log formatted warning event to console"""
-        event = EventLog(log_level=LogLevel.WARN, channel=EventChannel.CONSOLE, message=message)
+        event = EventLog(log_level=LogLevel.WARN,
+                         channel=EventChannel.CONSOLE,
+                         message=message)
         self._emit_event(event)
 
     def console_error(self, message: str) -> None:
         """Log formatted error event to console"""
-        event = EventLog(log_level=LogLevel.ERROR, channel=EventChannel.CONSOLE, message=message)
+        event = EventLog(log_level=LogLevel.ERROR,
+                         channel=EventChannel.CONSOLE,
+                         message=message)
         self._emit_event(event)
+
 
 LOGGER = _ModuleLogger()
