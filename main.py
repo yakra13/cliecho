@@ -84,7 +84,7 @@ def main() -> None:
     Docstring for main
     """
 
-    input_queue: Queue = Queue()
+    input_queue: Queue = Queue() # TODO: wont need this
     # io_lock = threading.Lock()
     # print_event = threading.Event()
     # print_event.set()
@@ -92,16 +92,23 @@ def main() -> None:
     # LOGGER.io_lock = io_lock
     # LOGGER.print_event = print_event
 
-    # Setup commands tab completion
-    Completer().setup()
 
     # interface_manager.SetVerbosity()
     # interface_manager.SetFormat()
 
-    # TODO: load stuff
     display_logo()
+    # TODO: load stuff
+    # Setup commands tab completion
+    Completer().setup()
     ModuleLoader().discover()
 
+    # Start input loop
+    CLIManager().run()
+
+    # Perform clean up actions
+    Completer().teardown()
+
+    #TODO: remove below
     # Setup user input in its own thread allowing module threads to run independantly
     input_thread = threading.Thread(target=CLIManager().get_input, args=(input_queue,), daemon=True)
     input_thread.start()

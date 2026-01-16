@@ -10,6 +10,7 @@ import time
 from typing import Callable, Optional, List, Dict, Sequence
 
 from core.command_registry import CommandNode, build_command_registry
+from core.completer import Completer
 from core.dispatcher import Dispatcher
 from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
@@ -109,13 +110,15 @@ class CLIManager(Singleton):
         """ Handle exit command. """
         # TODO: handle exit/current module exit
         # print(f"handle exit: {args}")
-        if Dispatcher().current_module:
-            module_name = Dispatcher().current_module.name or "unknown module"
+        current_module = Dispatcher().current_module
+
+        if current_module:
+            module_name = current_module.name or "unknown module"
             Dispatcher().set_current_module(None)
             LOGGER.console_raw(f"Exited {module_name}")
             return
 
-        # TODO: prep exit
+        # TODO: inform run() we are exiting
         sys.exit(0)
 
         # if Dispatcher().has_running_jobs():
@@ -220,3 +223,80 @@ class CLIManager(Singleton):
 
             # time.sleep(0.1)
 
+    def run(self) -> None:
+        
+        while True:
+            # Check job threads and update
+            Dispatcher().poll_jobs()
+
+            try:
+                user_input = input(self.get_prompt())
+
+                tokens: List[str] = self.tokenize(user_input)
+                # TODO: update handle_command to return a 'command response'
+                # for example handle_exit returns a response to exit to program
+                # if it is not exiting the current module
+                # we handle that response here so we can do clean up
+                self.handle_command(tokens)
+            except KeyboardInterrupt:
+                # TODO: what happens if you ctrl c while handling commands?
+                # TODO: check context, are we using a module? then back out
+                # TODO: not in a module prep for exit, check running jobs
+                # inform user and wait for them to complete?
+                # TODO: what if they ctrl c during that time?
+                break # continue
+                # TODO: we will have a return somewhere. possible some 'exit code' too
+
+                # NOTE: disable ctrl c:
+                '''
+                import signal
+                import time
+
+                # Ignore SIGINT
+                original_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+                print("Critical work starting... Ctrl+C is disabled.")
+                time.sleep(5)  # This cannot be interrupted by Ctrl+C
+                print("Critical work done.")
+
+                # Restore original behavior
+                signal.signal(signal.SIGINT, original_handler)
+                '''
+                # NOTE: block ctrl c and consume it when ready
+                '''
+                import signal
+
+                # Block SIGINT
+                signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+
+                # ... perform sensitive operations ...
+
+                # Unblock SIGINT (The exception will be raised immediately here if Ctrl+C was pressed)
+                signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
+                '''
+                # NOTE: custom handler
+                '''
+                import signal
+
+                class App:
+                    def __init__(self):
+                        self.interrupted = False
+                        signal.signal(signal.SIGINT, self.handle_interrupt)
+
+                    def handle_interrupt(self, signum, frame):
+                        print("\n[Soft Interrupt] Handling... (Press again to force quit)")
+                        self.interrupted = True
+                        # To allow a "hard" exit on second press:
+                        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+                    def run_job(self):
+                        for i in range(10):
+                            if self.interrupted:
+                                print("Job halted by user.")
+                                self.interrupted = False # Reset flag for next job
+                                return 
+                            print(f"Working... {i}")
+                            time.sleep(1)
+
+                App().run_job()
+                '''
