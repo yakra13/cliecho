@@ -2,15 +2,16 @@
 """
 import readline
 import shlex
-from queue import Queue
+import signal
 import sys
-from threading import Event, Lock
 import threading
 import time
+from queue import Queue
+from threading import Event, Lock
 from typing import Callable, Optional, List, Dict, Sequence
 
 from core.command_registry import CommandNode, build_command_registry
-from core.completer import Completer
+# from core.completer import Completer
 from core.dispatcher import Dispatcher
 from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
@@ -26,7 +27,17 @@ class CLIManager(Singleton):
     """
     def _init_once(self, *args, **kwargs) -> None:
         self._io_lock = threading.Lock()
+        self._signal_interrupted = False
+
+        signal.signal(signal.SIGINT, self._handle_interrupt)
+
         return super()._init_once(*args, **kwargs)
+
+    def _handle_interrupt(self, signum, frame) -> None:
+        self._signal_interrupted = True
+        # To allow a "hard" exit on second press:
+        # signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 
     def get_prompt(self) -> str:
         module: Optional[ModuleBase] = Dispatcher().current_module
@@ -183,6 +194,10 @@ class CLIManager(Singleton):
             LOGGER.console_raw(f"'{cmd}' requires a module to be in use")
             return
 
+        # TODO: auto name function handlers
+        cmd = "handle_" + cmd.replace(' ', '_')
+        LOGGER.console_raw(f"'{cmd}' is the auto named function name")
+
         # Should be valid command
         func = self._resolve_handler(node)
         if func:
@@ -190,10 +205,9 @@ class CLIManager(Singleton):
             func(args)
         else:
             # TODO: misspelled function name or not implemented from the command registry
-            LOGGER.console_raw(f"DEVELOPER ERR: {node.handler} is not implemented or is spelled incorrectly." \
-                               "See cli_manager.py or command_registry.py")
+            LOGGER.console_debug(f"Handler '{node.handler}' is not implemented.")
 
-
+    # TODO: remove this function
     def get_input(self, queue: Queue): #, io_lock: Lock, print_event: Event):
         """
         Docstring for run
@@ -229,6 +243,14 @@ class CLIManager(Singleton):
             # Check job threads and update
             Dispatcher().poll_jobs()
 
+            if self._signal_interrupted:
+                # TODO: Ctrl+C was pressed. Handle it accordingly based on state
+                # Reset signal interrupt flag
+                self._signal_interrupted = False
+
+                # TODO: watch command, follows a specified job and immediately prints its queue as its filled
+                # ctrl c should exit the watch and return that job to standard queue display
+
             try:
                 user_input = input(self.get_prompt())
 
@@ -238,7 +260,15 @@ class CLIManager(Singleton):
                 # if it is not exiting the current module
                 # we handle that response here so we can do clean up
                 self.handle_command(tokens)
-            except KeyboardInterrupt:
+            except EOFError:
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+                # TODO: ctrl D with empty buffer will hit this exception block
+                # if the buffer is not empty we dont seem to hit this block
+                continue
+            # except KeyboardInterrupt:
+                # TODO: sig
+                print("INTERRUPT STILL CAUGHT")
                 # TODO: what happens if you ctrl c while handling commands?
                 # TODO: check context, are we using a module? then back out
                 # TODO: not in a module prep for exit, check running jobs
@@ -247,56 +277,61 @@ class CLIManager(Singleton):
                 break # continue
                 # TODO: we will have a return somewhere. possible some 'exit code' too
 
-                # NOTE: disable ctrl c:
-                '''
-                import signal
-                import time
 
-                # Ignore SIGINT
-                original_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-                print("Critical work starting... Ctrl+C is disabled.")
-                time.sleep(5)  # This cannot be interrupted by Ctrl+C
-                print("Critical work done.")
 
-                # Restore original behavior
-                signal.signal(signal.SIGINT, original_handler)
-                '''
-                # NOTE: block ctrl c and consume it when ready
-                '''
-                import signal
 
-                # Block SIGINT
-                signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
 
-                # ... perform sensitive operations ...
+# NOTE: disable ctrl c:
+'''
+import signal
+import time
 
-                # Unblock SIGINT (The exception will be raised immediately here if Ctrl+C was pressed)
-                signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
-                '''
-                # NOTE: custom handler
-                '''
-                import signal
+# Ignore SIGINT
+original_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-                class App:
-                    def __init__(self):
-                        self.interrupted = False
-                        signal.signal(signal.SIGINT, self.handle_interrupt)
+print("Critical work starting... Ctrl+C is disabled.")
+time.sleep(5)  # This cannot be interrupted by Ctrl+C
+print("Critical work done.")
 
-                    def handle_interrupt(self, signum, frame):
-                        print("\n[Soft Interrupt] Handling... (Press again to force quit)")
-                        self.interrupted = True
-                        # To allow a "hard" exit on second press:
-                        signal.signal(signal.SIGINT, signal.SIG_DFL)
+# Restore original behavior
+signal.signal(signal.SIGINT, original_handler)
+'''
+# NOTE: block ctrl c and consume it when ready
+'''
+import signal
 
-                    def run_job(self):
-                        for i in range(10):
-                            if self.interrupted:
-                                print("Job halted by user.")
-                                self.interrupted = False # Reset flag for next job
-                                return 
-                            print(f"Working... {i}")
-                            time.sleep(1)
+# Block SIGINT
+signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
 
-                App().run_job()
-                '''
+# ... perform sensitive operations ...
+
+# Unblock SIGINT (The exception will be raised immediately here if Ctrl+C was pressed)
+signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
+'''
+# NOTE: custom handler
+'''
+import signal
+
+class App:
+    def __init__(self):
+        self.interrupted = False
+        signal.signal(signal.SIGINT, self.handle_interrupt)
+
+    def handle_interrupt(self, signum, frame):
+        print("\n[Soft Interrupt] Handling... (Press again to force quit)")
+        self.interrupted = True
+        # To allow a "hard" exit on second press:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    def run_job(self):
+        for i in range(10):
+            if self.interrupted:
+                print("Job halted by user.")
+                self.interrupted = False # Reset flag for next job
+                return 
+            print(f"Working... {i}")
+            time.sleep(1)
+
+App().run_job()
+'''

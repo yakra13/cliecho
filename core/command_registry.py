@@ -64,6 +64,8 @@ def build_command_registry() -> Dict[str, CommandNode]:
             'load': CommandNode(handler='handle_preset_load', module_only=True),
             'save': CommandNode(handler='handle_preset_save', module_only=True),
             }),
+        'watch': CommandNode(completer=lambda _: Dispatcher().get_job_ids(),
+                             handler='handle_watch'),
         'exit': CommandNode(handler='handle_exit'),
         'help': CommandNode(handler='handle_help'),
     }

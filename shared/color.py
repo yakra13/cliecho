@@ -194,7 +194,7 @@ def estimate_ansi_color(color: Color) -> int:
     # The color is "bright" if it falls into the upper range (128-255)
     bright: bool = luma >= 128
 
-    best_code = 30
+    final_code = 30 # black
     best_dist = float("inf")
     # Determine the "distance" the color is from each possible
     # ansi color and choose the closest one
@@ -202,13 +202,13 @@ def estimate_ansi_color(color: Color) -> int:
         distance = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2
         if distance < best_dist:
             best_dist = distance
-            best_code = code
+            final_code = code
 
     # Convert the code to the bright version if required
     if bright:
-        best_code += 60
+        final_code += 60
     
-    return best_code
+    return final_code
 
 def lerp_color(c1: Color, c2: Color, t: float) -> Color:
     return Color(round(lerp(c1.R, c2.R, t)),

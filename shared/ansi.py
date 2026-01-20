@@ -1,10 +1,10 @@
 
-# Regex to remove ANSI escape characters from a string
 import os
 import re
 import sys
 from enum import Enum, auto
 
+# Regex to remove ANSI escape characters from a string
 ANSI_REGEX = re.compile(r'\x1b\[[0-9;]*m')
 
 class AnsiSupport(Enum):
@@ -12,6 +12,7 @@ class AnsiSupport(Enum):
     ANSI_16   = auto()
     ANSI_256  = auto()
     TRUECOLOR = auto()
+
 
 class AnsiStyle(Enum):
     BOLD      = '1'

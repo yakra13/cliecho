@@ -1,16 +1,16 @@
 """
 TODO: docstring
 """
-from pathlib import Path
 import threading
-from queue import Empty, Queue
 import time
+from pathlib import Path
+from queue import Empty, Queue
 from typing import List
 
 from core.cli_manager import CLIManager
 from core.completer import Completer
-from core.dispatcher import Dispatcher
-from core.events import InputClosed, UserInterrupt
+# from core.dispatcher import Dispatcher
+# from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
 from shared.ansi import AnsiStyle
 from shared.color import Color, lerp_color
@@ -84,22 +84,12 @@ def main() -> None:
     Docstring for main
     """
 
-    input_queue: Queue = Queue() # TODO: wont need this
-    # io_lock = threading.Lock()
-    # print_event = threading.Event()
-    # print_event.set()
-
-    # LOGGER.io_lock = io_lock
-    # LOGGER.print_event = print_event
-
-
-    # interface_manager.SetVerbosity()
-    # interface_manager.SetFormat()
-
     display_logo()
     # TODO: load stuff
     # Setup commands tab completion
     Completer().setup()
+
+    # Discover available modules
     ModuleLoader().discover()
 
     # Start input loop
@@ -107,56 +97,7 @@ def main() -> None:
 
     # Perform clean up actions
     Completer().teardown()
-
-    #TODO: remove below
-    # Setup user input in its own thread allowing module threads to run independantly
-    input_thread = threading.Thread(target=CLIManager().get_input, args=(input_queue,), daemon=True)
-    input_thread.start()
-
-
-    ctrlc = False
-    # Main program loop
-    while True:
-        try:
-            # Update (check status, fill queues etc)
-            Dispatcher().poll_jobs()
-            
-            # Get input is done in input_thread (CLIManager.get_input)
-            # Consume input
-            if not ctrlc:
-                try:
-                    msg = input_queue.get(timeout=0.1)
-                except Empty:
-                    # Timeout reached and no input was received
-                    continue
-            else:
-                ctrlc = False
-                msg = UserInterrupt()
-
-            # Handle input
-            match msg:
-                case InputClosed():
-                    # TODO: Input closed handle shutdown
-                    break
-                case UserInterrupt():
-                    # TODO: ctrl C cancel running jobs?
-                    LOGGER.console_raw("Ctrl C was captured!\n")
-                    continue # continue
-                case str():
-                    # Process and handle user input
-                    tokens: List[str] = CLIManager().tokenize(msg)
-                    CLIManager().handle_command(tokens)
-                case _:
-                    # unknown signal...
-                    break
-
-            # Output to the CLI happens last, we should be guranteed 
-            # that there is no user input entered into the console
-            # LOGGER.flush_console()
-            Completer.teardown() # TODO: place this where exit cleanup happens
-        except KeyboardInterrupt:
-            ctrlc = True
-            continue
+    # TODO: delete .temp modules?
 
 
 if __name__ == "__main__":

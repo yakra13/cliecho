@@ -79,10 +79,11 @@ class _ModuleLogger:
             case LogLevel.DEBUG:
                 log_level_color = Color.Cyan
 
-        timestamp = style_text(text=event.timestamp.isoformat(),
+        timestamp = style_text(text=self._format_timestamp(event.timestamp),
+                               #event.timestamp.isoformat(),
                                styles=[AnsiStyle.DIM])
 
-        module = style_text(text=f"[{(event.module_name or 'unknown')}]",
+        module = style_text(text=f"[{(event.module_name or 'RedEcho')}]",
                             text_color=Color.Black,
                             back_color=Color.DarkGray,
                             styles=[AnsiStyle.DIM])
@@ -91,7 +92,10 @@ class _ModuleLogger:
                            text_color=log_level_color,
                            styles=[AnsiStyle.BOLD])
         
-        return f"{timestamp} {module} {level} {event.message}"
+        return f"{timestamp} {module} {level}: {event.message}"
+
+    def _format_timestamp(self, timestamp: datetime) -> str:
+        return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
     def _prepare_event_data(self, event: EventLog) -> None:
         """Populates event data with username, hostname, module settings."""
@@ -140,7 +144,7 @@ class _ModuleLogger:
                 file.write("\n")
         elif event.channel == EventChannel.CONSOLE:
             # write to stdout
-            sys.stdout.write(self._format_console_output(event))
+            sys.stdout.write(self._format_console_output(event) + '\n')
             sys.stdout.flush()
         else:
             raise NotImplementedError(f"Call to write unimplemented log channel: {event.channel.name}")
@@ -162,6 +166,13 @@ class _ModuleLogger:
     def log_error(self, message: str) -> None:
         """Log error event to file"""
         event = EventLog(log_level=LogLevel.ERROR,
+                         channel=EventChannel.LOG,
+                         message=message)
+        self._emit_event(event)
+
+    def log_debug(self, message: str) -> None:
+        """Log debug event to file"""
+        event = EventLog(log_level=LogLevel.DEBUG,
                          channel=EventChannel.LOG,
                          message=message)
         self._emit_event(event)
@@ -190,6 +201,13 @@ class _ModuleLogger:
     def console_error(self, message: str) -> None:
         """Log formatted error event to console"""
         event = EventLog(log_level=LogLevel.ERROR,
+                         channel=EventChannel.CONSOLE,
+                         message=message)
+        self._emit_event(event)
+
+    def console_debug(self, message: str) -> None:
+        """Log formatted debug event to console"""
+        event = EventLog(log_level=LogLevel.DEBUG,
                          channel=EventChannel.CONSOLE,
                          message=message)
         self._emit_event(event)

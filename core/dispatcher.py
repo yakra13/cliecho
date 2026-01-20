@@ -14,9 +14,12 @@ from core.module_loader import ModuleLoader, ModulePreset
 from core.output_formatter import format_module_settings, format_list_as_grid
 
 from core.util.singleton import Singleton
+from shared.ansi import AnsiStyle
+from shared.color import Color
 from shared.module_base import ModuleBase
 from shared.module_context import ModuleContext
 from shared.module_logger import module_event_queue, module_logging_context
+from shared.table import Table, TableCell, TableConfig, TableHeader, TableRow
 
 @dataclass
 class Job:
@@ -58,6 +61,8 @@ class Dispatcher(Singleton):
             # return # TODO
 
         module.run()
+        # TODO: what we return?
+        return ''
 
     def _run_in_thread(self) -> str:
         module: Optional[ModuleBase] = self._current_module
@@ -127,18 +132,31 @@ class Dispatcher(Singleton):
         return bool(self._running_jobs)
 
     def list_running_jobs(self) -> str:
-        if not self.has_running_jobs:
-            return "There are no jobs"
+        if not self.has_running_jobs():
+            return "No currently running jobs."
 
-        jobs_data: List[str] = ["ID", "Status", "Module", "Messages"]
+        table_config = TableConfig(cell_padding=2,
+                                   content_truncate=True,
+                                   cell_widths=[10, 16, 30, 10],
+                                   styling='none')
+
+        table_header: TableHeader = TableHeader(
+            cells=[TableCell(header) for header in ["ID", "Status", "Module", "Messages"]],
+            align='center',
+            styles=[AnsiStyle.BOLD])
+
+        table: Table = Table(header=table_header, config=table_config)
 
         for _, job in self._running_jobs.items():
-            jobs_data.append(job.id)
-            jobs_data.append("Running" if job.thread.is_alive() else "Finished")
-            jobs_data.append(job.module.name)
-            jobs_data.append(str(job.queue.qsize()))
+            row: TableRow = TableRow(align='left')
+            row.add_cell(job.id)
+            row.add_cell("Running" if job.thread.is_alive() else "Complete",
+                         fore_color=Color.Green if job.thread.is_alive() else Color.Red)
+            row.add_cell(job.module.name)
+            row.add_cell(str(job.queue.qsize()))
+            table.add_row(row)
 
-        return format_list_as_grid(jobs_data, auto_size=True, column_major=False)
+        return table.render()
 
     def update_module_presets(self) -> None:
         if self._current_module is None:
@@ -263,8 +281,8 @@ class Dispatcher(Singleton):
         lines: List[str] = []
 
         for preset in self._presets:
-            name = preset.get('preset_name', '<No Name>')
-            desc = preset.get('description', '<No Description>')
+            name = preset.values.get('preset_name', '<No Name>')
+            desc = preset.values.get('description', '<No Description>')
             lines.append(f"{name}\n\t{desc}")
 
         return sorted(lines)
@@ -282,11 +300,11 @@ class Dispatcher(Singleton):
         for preset in self._presets:
             if preset.preset_name.lower() == preset_name.lower():
                 lines = [
-                    f"{preset.get('preset_name', '<No Name>')}",
-                    f"{preset.get('description', '<No Description>')}"
+                    f"{preset.values.get('preset_name', '<No Name>')}",
+                    f"{preset.values.get('description', '<No Description>')}"
                 ]
 
-                for name, value in preset.items():
+                for name, value in preset.values.items():
                     lines.append(f"{name} = {value}")
 
                 return "\n".join(lines)

@@ -1,7 +1,5 @@
 """
 """
-# import getpass
-# import socket
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from enum import Enum, auto
@@ -9,17 +7,17 @@ from typing import Optional, Any, Dict
 
 class LogLevel(Enum):
     """Defines the log level of events"""
-    INFO = auto()
-    WARN = auto()
+    INFO  = auto()
+    WARN  = auto()
     ERROR = auto()
     DEBUG = auto()
-    RAW = auto()
-    # TODO: Special Log levels
+    RAW   = auto()
+    # TODO: Special Log levels?
 
 class EventChannel(Enum):
     """Defines channels that events emit on"""
-    CONSOLE = auto()
-    LOG = auto()
+    CONSOLE = auto() # stdout
+    LOG = auto() # to file
 
 @dataclass
 class EventLog:

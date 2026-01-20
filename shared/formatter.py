@@ -12,6 +12,7 @@ from .ansi import AnsiStyle, AnsiSupport, visible_len, SUPPORTED_ANSI
 from .color import Color, estimate_ansi_color
 
 def _to_column_major(items: List[str], columns: int) -> List[str]:
+    """Converts a sorted list to unix column major order."""
     if not items or columns <= 0:
         return items
     
