@@ -1,27 +1,22 @@
 """
 Docstring for shared.module_base
 """
+import yaml
 from dataclasses import dataclass
 from importlib import resources
 from typing import Optional, Union, Type, Any, List, Dict, final
-import yaml
-# from queue import Queue
 
-# from shared.module_logger import get_event_queue
-from shared.module_logger import LOGGER #, BufferedSink, ImmediateSink
-# from shared.log_types import LogLevel, Event
+from shared.module_logger import LOGGER
 
 @dataclass
 class ModuleArg:
-    """
-    Docstring for ModuleArg
-    """
+    """Dataclass representing a module argument and its settings."""
     description: str
     required: bool = False    
     default_value: Optional[Union[str, List[str]]] = None
     help: Optional[str] = None
     shortname: Optional[str] = None
-    value_type: Type = str
+    category: Type = str
 
 
 class ModuleBase:
@@ -59,6 +54,7 @@ class ModuleBase:
                 default_value = spec.get("default"),
                 help          = spec.get("help"),
                 shortname     = spec.get("shortname"),
+                category      = spec.get("category")
             )
             # Assign any args with default values
             if self._module_args[name].default_value:
@@ -76,8 +72,6 @@ class ModuleBase:
             # Assign any args with default values
             if self._module_args[name].default_value:
                 self._options[name] = self._module_args[name].default_value
-
-        LOGGER.console_info("Finish __init__")
 
     @property
     def name(self) -> str:
@@ -135,7 +129,7 @@ class ModuleBase:
             raise KeyError(f"Unknown option {key}")
 
         try:
-            self._options[key] = self._module_args[key].value_type(val)
+            self._options[key] = self._module_args[key].category(val)
         except Exception as e:
             raise ValueError() from e
 
@@ -169,7 +163,7 @@ class ModuleBase:
         return settings
 
     @final    
-    def validate(self):
+    def validate(self) -> None:
         """
         Docstring for validate
         

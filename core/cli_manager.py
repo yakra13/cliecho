@@ -13,11 +13,11 @@ from typing import Callable, Optional, List, Dict, Sequence
 from core.command_registry import CommandNode, build_command_registry
 # from core.completer import Completer
 from core.dispatcher import Dispatcher
-from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
-from core.output_formatter import format_list_as_grid
+# from core.output_formatter import format_list_as_grid
 from core.util.singleton import Singleton
 
+from shared.formatter import format_list_as_grid
 from shared.module_base import ModuleBase
 from shared.module_logger import LOGGER
 
@@ -206,36 +206,6 @@ class CLIManager(Singleton):
         else:
             # TODO: misspelled function name or not implemented from the command registry
             LOGGER.console_debug(f"Handler '{node.handler}' is not implemented.")
-
-    # TODO: remove this function
-    def get_input(self, queue: Queue): #, io_lock: Lock, print_event: Event):
-        """
-        Docstring for run
-        
-        :param self: Description
-        """
-        while True:
-            try:
-                user_input = input(self.get_prompt())
-            except EOFError:
-                # Captures Ctrl+D (Linux) or Ctrl+Z + Enter (Windows)
-                queue.put(InputClosed())
-                break
-            except KeyboardInterrupt:
-                # Capture Ctrl+C
-                queue.put(UserInterrupt())
-                break
-            queue.put(user_input)
-            # print_event.wait()
-            # try:
-                # with io_lock:
-                    # user_input = input(self._get_prompt())
-                # queue.put(user_input)
-            # except EOFError:
-                # queue.put("__EOF__")
-                # break
-
-            # time.sleep(0.1)
 
     def run(self) -> None:
         

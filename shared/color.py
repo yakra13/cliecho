@@ -1,11 +1,12 @@
 
 from dataclasses import dataclass
 from typing import ClassVar
-from .util import clamp_uint8, lerp
+
+from shared.util import clamp_uint8, lerp
 
 @dataclass(frozen=True, slots=True)
 class Color:
-    """ 24-bit Color RGB Dataclass"""
+    """24-bit Color RGB dataclass"""
     R: int
     G: int
     B: int
@@ -186,13 +187,25 @@ _ANSI_COLORS = {
     37: (229, 229, 229)    # white
 }
 
-def estimate_ansi_color(color: Color) -> int:
-    """Estimate the ANSI_16 color code that most closely matches the 24bit color."""
+def estimate_ansi_color(color: Color, is_background: bool = False) -> int:
+    """
+    Estimate the ANSI_16 color code that most closely matches the 24bit color.
+    
+    Args:
+        color: The color to estimate the ANSI 16 color from.
+        is_background: Set to true if the color is used as the ANSI background color.
+    
+    Returns:
+        The integer value ANSI color code closest to the provided color.
+
+    Raises:
+        None
+    """
     r, g, b = color.R, color.G, color.B
     # Calculate luminance (brightness)
     luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
     # The color is "bright" if it falls into the upper range (128-255)
-    bright: bool = luma >= 128
+    is_bright: bool = luma >= 128
 
     final_code = 30 # black
     best_dist = float("inf")
@@ -205,12 +218,29 @@ def estimate_ansi_color(color: Color) -> int:
             final_code = code
 
     # Convert the code to the bright version if required
-    if bright:
+    if is_bright:
         final_code += 60
+    
+    if is_background:
+        final_code += 10
     
     return final_code
 
-def lerp_color(c1: Color, c2: Color, t: float) -> Color:
-    return Color(round(lerp(c1.R, c2.R, t)),
-                 round(lerp(c1.G, c2.G, t)),
-                 round(lerp(c1.B, c2.B, t)))
+def lerp_color(start_color: Color, end_color: Color, t: float) -> Color:
+    """
+    Performs a lerp operation between two colors.
+
+    Args:
+        start_color: The starting color. t == 0.0
+        end_color: The ending color. t == 1.0
+        t: The step size between the start and end color.
+    
+    Returns:
+        The color that falls between the start and end colors.
+    
+    Raises:
+        None
+    """
+    return Color(round(lerp(start_color.R, end_color.R, t)),
+                 round(lerp(start_color.G, end_color.G, t)),
+                 round(lerp(start_color.B, end_color.B, t)))

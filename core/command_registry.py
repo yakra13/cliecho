@@ -51,7 +51,7 @@ def build_command_registry() -> Dict[str, CommandNode]:
                            flags=[
                                CommandFlag('-t',
                                             'threaded',
-                                            'Runs the module in its own thread.')
+                                            'Runs the current module in its own thread.')
                             ]),
         'set': CommandNode(
             completer=lambda _: Dispatcher().get_module_params(),

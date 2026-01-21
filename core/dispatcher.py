@@ -11,11 +11,12 @@ from typing import Any, Optional, Type, Dict, List
 
 from core.exceptions import NoModuleError
 from core.module_loader import ModuleLoader, ModulePreset
-from core.output_formatter import format_module_settings, format_list_as_grid
+# from core.output_formatter import format_module_settings
 
 from core.util.singleton import Singleton
 from shared.ansi import AnsiStyle
 from shared.color import Color
+from shared.formatter import format_list_as_grid
 from shared.module_base import ModuleBase
 from shared.module_context import ModuleContext
 from shared.module_logger import module_event_queue, module_logging_context
@@ -231,7 +232,9 @@ class Dispatcher(Singleton):
         if self._current_module is None:
             raise NoModuleError()
 
-        return format_module_settings(self._current_module.get_settings())
+        # return format_module_settings(self._current_module.get_settings())
+        # TODO
+        return ''
 
     def poll_jobs(self) -> None:
         """Polls running jobs, consumes their message queues and close finished jobs."""
@@ -262,6 +265,8 @@ class Dispatcher(Singleton):
     def run_module(self) -> str:
         """ """
         message: str = ""
+
+
         try:
             if self._exec_in_thread:
                 message = self._run_in_thread()
@@ -310,3 +315,14 @@ class Dispatcher(Singleton):
                 return "\n".join(lines)
 
         raise KeyError(f"Preset {preset_name} not found.")
+
+
+    def validate_params(self):
+        # all required args set
+        # all args are valid ie numbers are numbers, ips are ips, paths are paths etc
+        # run against guard rail rules
+
+        # return a list of problems?
+        # the follow issues were found: param is not a valid path, guard rails: list rule description
+        # and the offending values/params
+        

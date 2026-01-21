@@ -1,19 +1,20 @@
 """
+TODO: Delete this file it has moved to shared as formatter.py
 """
 import math
 import shutil
-import re
 
 from typing import Dict, Tuple, Any, Optional, List
 
-from shared.log_types import EventLog
+from shared.ansi import ljust_ansi, visible_len
 from shared.module_base import ModuleArg
-
-# Regex to remove ANSI escape characters from a string
-ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
 def to_column_major(items: List[str], columns: int) -> List[str]:
     if not items or columns <= 0:
+        return items
+
+    # The layout is already correct if there is only one row    
+    if len(items) <= columns:
         return items
     
     rows = math.ceil(len(items) / columns)
@@ -42,9 +43,9 @@ def to_column_major(items: List[str], columns: int) -> List[str]:
     
     return result
 
-def visible_length(s: str) -> int:
-    # Remove ANSI escape characters for proper string length
-    return len(ANSI_RE.sub('', s))
+# def visible_length(s: str) -> int:
+#     # Remove ANSI escape characters for proper string length
+#     return len(ANSI_RE.sub('', s))
 
 def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[Any]]]) -> str:
     """
@@ -58,24 +59,26 @@ def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[
     raise NotImplementedError("format_module_settings: Not implemented")
 
 def format_list_as_grid(items: List[str],
-                         columns: int = 1,
-                         auto_size: bool = False,
-                         column_major: bool = True) -> str:
+                        columns: int = 1,
+                        auto_size: bool = False,
+                        column_major: bool = True) -> str:
     """
     Docstring for format_show_modules
     """
 
     if not items:
         return ''
+    
+    left_padding = ' ' * 4
 
     # Find the length of the longest item add 2 for spacing
-    column_width = max(visible_length(item) for item in items) + 2
+    column_width = max(visible_len(item) for item in items) + 2
 
     if auto_size:
         terminal_width, _ = shutil.get_terminal_size()
         columns = max(1, terminal_width // column_width)
 
-    if column_major:
+    if column_major and len(items) > columns:
         items = to_column_major(items, columns)
 
     # Print formatted
@@ -83,22 +86,7 @@ def format_list_as_grid(items: List[str],
 
     for i in range(0, len(items), columns):
         row_items = items[i:i + columns]
-        line = ''.join(item.ljust(column_width) for item in row_items)
-        lines.append(f"    {line.rstrip()}")  # remove trailing spaces
+        line = ''.join(ljust_ansi(item, column_width) for item in row_items)
+        lines.append(f"{left_padding}{line.rstrip()}")  # remove trailing spaces
 
     return '\n'.join(lines)
-
-# def format_console_event_output(event: EventLog) -> str:
-#     output: str = ''
-#     # TODO
-
-#     return output
-'''
-┌────────┬────────┐
-│\033[1mColumn 1\033[0m│\033[1mColumn 2\033[0m│
-├────────┼────────┤
-│Value 1 │ Value 2│
-├────────┼────────┤
-│\033[47;30mValue 3 │ Value 4\033[0m│
-└────────┴────────┘
-'''

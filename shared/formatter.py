@@ -1,34 +1,49 @@
+"""
+
+"""
+from datetime import datetime
 import math
-import os
-import re
 import shutil
-import sys
 
-from dataclasses import dataclass
-from enum import Enum, auto
-from typing import Any, ClassVar, Final, Iterable, List, Literal, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from .ansi import AnsiStyle, AnsiSupport, visible_len, SUPPORTED_ANSI
-from .color import Color, estimate_ansi_color
+# from shared.module_base import ModuleArg
+
+from shared.ansi import AnsiStyle, AnsiSupport, ljust_ansi, visible_len, SUPPORTED_ANSI
+from shared.color import Color, estimate_ansi_color
 
 def _to_column_major(items: List[str], columns: int) -> List[str]:
-    """Converts a sorted list to unix column major order."""
+    """
+    Converts a sorted list to unix column major order.
+
+    Args:
+        items: List of strings to sort.
+        columns: The number of columns to fit the items into.
+
+    Returns:
+        A sorted list that when printed to termina will be column major order.
+
+    Raises:
+        None
+    """
     if not items or columns <= 0:
         return items
     
     rows = math.ceil(len(items) / columns)
 
+    # Create a 2D list large enough to fit all items
     grid: List[List[Optional[str]]] = [[None] * columns for _ in range(rows)]
 
-    # Fill column-major
+    # Populate the list with each item top to bottom; left to right
     idx = 0
-    for c in range(columns):
-        for r in range(rows):
+    for col in range(columns):
+        for row in range(rows):
             if idx < len(items):
-                grid[r][c] = items[idx]
+                grid[row][col] = items[idx]
                 idx += 1
 
     result: List[str] = []
+    # Transform the 2D list to 1D
     for row in grid:
         for item in row:
             result.append(item if item is not None else '')
@@ -59,6 +74,8 @@ def format_list_as_grid(items: List[str],
     """
     if not items:
         return ''
+    
+    padding: str = ' ' * left_padding
 
     # Find the length of the longest item add 2 for spacing
     column_width = max(visible_len(item) for item in items) + 2
@@ -67,7 +84,7 @@ def format_list_as_grid(items: List[str],
         terminal_width, _ = shutil.get_terminal_size()
         columns = max(1, terminal_width // column_width)
 
-    if column_major:
+    if column_major and len(items) > columns:
         items = _to_column_major(items, columns)
 
     # Print formatted
@@ -75,10 +92,54 @@ def format_list_as_grid(items: List[str],
 
     for i in range(0, len(items), columns):
         row_items = items[i:i + columns]
-        line = ''.join(item.ljust(column_width) for item in row_items)
-        lines.append(f"{' ' * left_padding}{line.rstrip()}")  # remove trailing spaces
+        line = ''.join(ljust_ansi(item, column_width) for item in row_items)
+        lines.append(f"{padding}{line.rstrip()}")  # remove trailing spaces
+
 
     return '\n'.join(lines)
+
+# def format_module_settings(module_settings: Dict[str, Tuple[ModuleArg, Optional[Any]]]) -> str:
+#     """
+#     Docstring for format_module_settings
+    
+#     :param module_settings: Description
+#     :type module_settings: Dict[str, Tuple[ModuleArg, Optional[Any]]]
+#     :return: Description
+#     :rtype: str
+#     """
+#     raise NotImplementedError("format_module_settings: Not implemented")
+
+def format_timestamp_standard(timestamp: datetime) -> str:
+    """
+    Returns a formatted string of the timestamp.
+    example: 2000-01-01 23:00:00
+
+    Args:
+        timestamp: The timestamp to format.
+
+    Returns:
+        A formatted string representing the timestamp.
+
+    Raises:
+        None
+    """
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+def format_timestamp_epoch(timestamp: datetime) -> str:
+    """
+    Returns a string of the timestamp in epoch format.
+    ie number of seconds since Jan 1, 1970 UTC
+
+    Args:
+        timestamp: The timestamp to format.
+
+    Returns:
+        A string representing the timestamp in epoch format.
+
+    Raises:
+        None
+    """
+    return str(int(timestamp.timestamp()))
 
 def style_text(text: str,
                text_color: Optional[Color] = None,
@@ -125,7 +186,7 @@ def style_text(text: str,
             codes.extend(['48', '2', str(back_color.R), str(back_color.G), str(back_color.B)])
         else:
             # If truecolor is not supported we default to ANSI_16 currently
-            bg = estimate_ansi_color(back_color)
+            bg = estimate_ansi_color(back_color, is_background=True)
             # Add ten to shift from foreground ansi color to background
             bg += 10
             codes.extend([str(bg)])

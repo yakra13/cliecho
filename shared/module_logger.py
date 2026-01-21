@@ -20,7 +20,7 @@ from typing import Dict, Final, Iterable, List, Literal, Optional
 # from shared.module_base import ModuleBase
 
 from shared.ansi import AnsiStyle
-from shared.log_types import EventLog, LogLevel, EventChannel
+from shared.log_types import EventLog, EventLevel, EventChannel
 from shared.module_context import ModuleContext
 from shared.color import Color
 from shared.formatter import style_text #Color, FGColor, color_text
@@ -66,17 +66,17 @@ class _ModuleLogger:
 
     def _format_console_output(self, event: EventLog) -> str:
         # TODO: defined colorization options from config file?
-        if event.log_level == LogLevel.RAW:
+        if event.event_level == EventLevel.RAW:
             return event.message
 
         log_level_color: Optional[Color] = None
 
-        match event.log_level:
-            case LogLevel.ERROR:
+        match event.event_level:
+            case EventLevel.ERROR:
                 log_level_color = Color.Red
-            case LogLevel.WARN:
+            case EventLevel.WARN:
                 log_level_color = Color.Yellow
-            case LogLevel.DEBUG:
+            case EventLevel.DEBUG:
                 log_level_color = Color.Cyan
 
         timestamp = style_text(text=self._format_timestamp(event.timestamp),
@@ -88,7 +88,7 @@ class _ModuleLogger:
                             back_color=Color.DarkGray,
                             styles=[AnsiStyle.DIM])
         
-        level = style_text(text=event.log_level.name,
+        level = style_text(text=event.event_level.name,
                            text_color=log_level_color,
                            styles=[AnsiStyle.BOLD])
         
@@ -119,7 +119,7 @@ class _ModuleLogger:
             return
 
         # Execution is standalone; handle write immediately
-        if event.channel == EventChannel.LOG:
+        if event.event_channel == EventChannel.LOG:
             # write to file
             # TODO: determine path, standalone execution need to log to some common
             # per module path. Perhaps ~/.redecho/logs/module_name/*.log
@@ -142,73 +142,73 @@ class _ModuleLogger:
             with open(log_file, "a", encoding="utf-8") as file:
                 json.dump(event.to_dict(), file)
                 file.write("\n")
-        elif event.channel == EventChannel.CONSOLE:
+        elif event.event_channel == EventChannel.CONSOLE:
             # write to stdout
             sys.stdout.write(self._format_console_output(event) + '\n')
             sys.stdout.flush()
         else:
-            raise NotImplementedError(f"Call to write unimplemented log channel: {event.channel.name}")
+            raise NotImplementedError(f"Call to write unimplemented log channel: {event.event_channel.name}")
 
     def log_info(self, message: str) -> None:
         """Log info event to file"""
-        event = EventLog(log_level=LogLevel.INFO,
-                         channel=EventChannel.LOG,
+        event = EventLog(event_level=EventLevel.INFO,
+                         event_channel=EventChannel.LOG,
                          message=message)
         self._emit_event(event)
 
     def log_warn(self, message: str) -> None:
         """Log warning event to file"""
-        event = EventLog(log_level=LogLevel.WARN,
-                         channel=EventChannel.LOG,
+        event = EventLog(event_level=EventLevel.WARN,
+                         event_channel=EventChannel.LOG,
                          message=message)
         self._emit_event(event)
 
     def log_error(self, message: str) -> None:
         """Log error event to file"""
-        event = EventLog(log_level=LogLevel.ERROR,
-                         channel=EventChannel.LOG,
+        event = EventLog(event_level=EventLevel.ERROR,
+                         event_channel=EventChannel.LOG,
                          message=message)
         self._emit_event(event)
 
     def log_debug(self, message: str) -> None:
         """Log debug event to file"""
-        event = EventLog(log_level=LogLevel.DEBUG,
-                         channel=EventChannel.LOG,
+        event = EventLog(event_level=EventLevel.DEBUG,
+                         event_channel=EventChannel.LOG,
                          message=message)
         self._emit_event(event)
 
     def console_raw(self, message:str) -> None:
         """Log unformatted message to console"""
-        event = EventLog(log_level=LogLevel.RAW,
-                         channel=EventChannel.CONSOLE,
+        event = EventLog(event_level=EventLevel.RAW,
+                         event_channel=EventChannel.CONSOLE,
                          message=message)
         self._emit_event(event)
         
     def console_info(self, message:str) -> None:
         """Log formatted info event to console"""
-        event = EventLog(log_level=LogLevel.INFO,
-                         channel=EventChannel.CONSOLE,
+        event = EventLog(event_level=EventLevel.INFO,
+                         event_channel=EventChannel.CONSOLE,
                          message=message)
         self._emit_event(event)
 
     def console_warn(self, message: str) -> None:
         """Log formatted warning event to console"""
-        event = EventLog(log_level=LogLevel.WARN,
-                         channel=EventChannel.CONSOLE,
+        event = EventLog(event_level=EventLevel.WARN,
+                         event_channel=EventChannel.CONSOLE,
                          message=message)
         self._emit_event(event)
 
     def console_error(self, message: str) -> None:
         """Log formatted error event to console"""
-        event = EventLog(log_level=LogLevel.ERROR,
-                         channel=EventChannel.CONSOLE,
+        event = EventLog(event_level=EventLevel.ERROR,
+                         event_channel=EventChannel.CONSOLE,
                          message=message)
         self._emit_event(event)
 
     def console_debug(self, message: str) -> None:
         """Log formatted debug event to console"""
-        event = EventLog(log_level=LogLevel.DEBUG,
-                         channel=EventChannel.CONSOLE,
+        event = EventLog(event_level=EventLevel.DEBUG,
+                         event_channel=EventChannel.CONSOLE,
                          message=message)
         self._emit_event(event)
 

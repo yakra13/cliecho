@@ -29,7 +29,7 @@ class ModuleLoader(Singleton):
     _loaded_modules: Dict[str, Type[ModuleBase]]
     _discovered_modules: Dict[str, Path]
 
-    def _init_once(self, *args, **kwargs):
+    def _init_once(self, *args: Any, **kwargs: Any) -> None:
         self._modules_path       = Path("modules")
         self._presets_path       = Path("presets")
         self._loaded_modules     = {}

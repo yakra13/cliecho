@@ -8,6 +8,9 @@ class Port():
     MAX = 65535
     MASK = 0xFFFF
 
+# class IPAddress():
+
+
 def _parse_ip(entry: str):
     # CIDR
     if '/' in entry:

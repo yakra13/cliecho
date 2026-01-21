@@ -1,0 +1,45 @@
+ARG TYPES
+file - valid path/ext 
+directory - valid win/lin path, can guardrail against specifc folders/names
+ipaddress - support for range/cidr/singular 192.168.0.1-150, 192.168.0.175, 172.9.0.0/12
+ipmask - 
+port - int 0-65535 validate against guardrail, pairable with ip/host
+UNC - str validate format can match against host/ip/share (dont support : for ipv6) (extended length \\?\UNC\)
+   webDAV \\hostname@SSL@443\SharedFolder\File
+host - str can match against guard rail hosts
+base64 - validate valid b64? guardrail?
+
+
+GENERICS
+list[arg type]
+
+string
+integer
+float
+
+@dataclass
+class ModuleArg:
+    """Dataclass representing a module argument and its settings."""
+    description: str
+    required: bool = False    
+    default_value: Optional[Union[str, List[str]]] = None
+    help: Optional[str] = None
+    shortname: Optional[str] = None
+    value_type: Type = str
+
+# - makes it a list and preserves ordering
+description: "new_test_module description"
+arguments:
+  required:
+    - name: "RHOST"
+      shortname: "?"
+      description: "description"
+      help: "help text"
+      category: "remote_host"
+      default: null
+
+    optional:
+        exampleoptional:
+            description: "description"
+            help: "help text"
+            shortname: "?"
