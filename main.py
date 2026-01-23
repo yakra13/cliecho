@@ -86,6 +86,8 @@ def main() -> None:
 
     display_logo()
     # TODO: load stuff
+    # Load Configuration
+    
     # Setup commands tab completion
     Completer().setup()
 

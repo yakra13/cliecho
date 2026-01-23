@@ -5,6 +5,8 @@ from typing import Callable
 
 from core.util.singleton import Singleton
 
+RED_ECHO_ROOT: Path
+
 @dataclass
 class Configuration(Singleton):
     """Global configuration settings."""

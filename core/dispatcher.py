@@ -318,6 +318,7 @@ class Dispatcher(Singleton):
 
 
     def validate_params(self):
+        pass
         # all required args set
         # all args are valid ie numbers are numbers, ips are ips, paths are paths etc
         # run against guard rail rules
@@ -325,4 +326,3 @@ class Dispatcher(Singleton):
         # return a list of problems?
         # the follow issues were found: param is not a valid path, guard rails: list rule description
         # and the offending values/params
-        
