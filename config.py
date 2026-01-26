@@ -8,7 +8,7 @@ from typing import Any, Final, List, Literal
 import shared.validation as Validate
 from shared.module_logger import LOGGER
 
-APP_ROOT_DIR: Final[Path]        = Path(__file__).resolve()
+APP_ROOT_DIR: Final[Path]        = Path(__file__).resolve().parent
 CONFIG_PATH: Final[Path]         = APP_ROOT_DIR / "config"
 DEFAULT_CONFIG_FILE: Final[Path] = CONFIG_PATH / "redecho.config"
 
@@ -45,7 +45,10 @@ class AppConfig():
         metadata={'validator': Validate.thread_count}) # 0 = automatic
     enable_duplicate_module_threads: bool = False # Run multiple threads of the same module
 
-    def __init__(self):
+    # def __init__(self):
+
+
+    def __post_init__(self):
         LOGGER.console_raw("Loading RedEcho configuration from file...")
         self._load_from_file()
         # Display any errors found when loading config file
@@ -57,8 +60,6 @@ class AppConfig():
             LOGGER.console_raw(f"{err_count} error{'s' if err_count > 1 else ''} found:")
             for err in self._config_errors:
                 LOGGER.console_error(err)
-
-    def __post_init__(self):
         self._initialized = True
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -77,9 +78,9 @@ class AppConfig():
             Path: 'get'
         }
 
-        parser = configparser.ConfigParser()
+        parser = configparser.ConfigParser(interpolation=None)
 
-        parser.read(DEFAULT_CONFIG_FILE)
+        content = parser.read(DEFAULT_CONFIG_FILE)
 
         if self._DEFAULT_SECTION not in parser:
             self._config_errors.append(
