@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 # from shared.module_base import ModuleArg
 
+from config import CONFIG
 from shared.ansi import AnsiStyle, AnsiSupport, ljust_ansi, visible_len, SUPPORTED_ANSI
 from shared.color import Color, estimate_ansi_color
 
@@ -123,7 +124,7 @@ def format_timestamp_standard(timestamp: datetime) -> str:
     Raises:
         None
     """
-    return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    return timestamp.strftime(CONFIG.timestamp_format)
 
 def format_timestamp_epoch(timestamp: datetime) -> str:
     """
@@ -164,7 +165,7 @@ def style_text(text: str,
         None
 
     """
-    if SUPPORTED_ANSI == AnsiSupport.NONE:
+    if SUPPORTED_ANSI == AnsiSupport.NONE or not CONFIG.enable_ansi:
         # NOTE: We assume that even styling is not supported (bold, underline, etc)
         return text
 

@@ -1,4 +1,3 @@
-import struct
 from typing import Final
 
 MAX_INT8:  Final[int] = 2**(8 - 1) - 1
