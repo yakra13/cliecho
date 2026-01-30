@@ -124,7 +124,7 @@ def format_timestamp_standard(timestamp: datetime) -> str:
         None
     """
     # TODO: make nicer (fix for circular import)
-    from ..config import CONFIG
+    from ..core.config import CONFIG
     return timestamp.strftime(CONFIG.timestamp_format)
 
 def format_timestamp_epoch(timestamp: datetime) -> str:
@@ -166,7 +166,7 @@ def style_text(text: str,
         None
 
     """
-    from config import CONFIG
+    from core.config import CONFIG
     if SUPPORTED_ANSI == AnsiSupport.NONE or not CONFIG.enable_ansi:
         # NOTE: We assume that even styling is not supported (bold, underline, etc)
         return text

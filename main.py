@@ -1,11 +1,11 @@
 """
 TODO: docstring
 """
-import threading
-import time
-from pathlib import Path
-from queue import Empty, Queue
-from typing import List
+# import threading
+# import time
+# from pathlib import Path
+# from queue import Empty, Queue
+# from typing import List
 
 from core.cli_manager import CLIManager
 from core.completer import Completer
@@ -16,8 +16,9 @@ from shared.ansi import AnsiStyle
 from shared.color import Color, lerp_color
 from shared.formatter import style_text
 from shared.module_logger import LOGGER
+from core.config import CONFIG # TODO: move config to core
 
-def display_logo() -> None:
+def _display_logo() -> None:
     text = """
  /▓▓▓▓▓▓▓                  /▓▓ /▓▓▓▓▓▓▓▓           /▓▓        /▓▓▓▓▓▓  
 │ ▓▓__  ▓▓                │ ▓▓│ ▓▓_____/          │ ▓▓       /▓▓▓_  ▓▓ 
@@ -79,27 +80,57 @@ def display_logo() -> None:
 # ╒ ╕ ╘ ╛
 # ╞ ╡ ╤ ╧ ╟ ╢
 
+def _load() -> None:
+    # Load Configuration
+    LOGGER.console_raw("Loading configuration.")
+    CONFIG.load_default_settings()
+    
+    err_count = len(CONFIG.errors)
+    
+    if err_count > 0:
+        LOGGER.console_raw(
+            style_text(
+                f"{err_count} error{'s' if err_count > 1 else ''} detected in configuration.", Color.Red))
+        for i, err in enumerate(CONFIG.errors):
+            LOGGER.console_raw(style_text(f"{i + 1}: ".rjust(5) + f"{err}", Color.Yellow))
+    else:
+        LOGGER.console_raw(f"Successfully loaded configuration.")
+
+    # Validate/Create Paths
+    LOGGER.console_raw("Validating and creating folder structure.")
+    messages = CONFIG.build_folder_structure()
+    for message in messages:
+        LOGGER.console_raw(style_text(f"  {message}", Color.Yellow))
+
+    # Setup commands tab completion
+    LOGGER.console_raw("Setting up environment.")
+    Completer().setup()
+
+    # Discover available modules
+    LOGGER.console_raw("Discovering modules.")
+    ModuleLoader().discover()
+    module_count = ModuleLoader().get_module_count()
+    LOGGER.console_raw(
+        style_text(f"  {module_count} module{'s' if module_count > 1 else ''} found.", Color.Cyan))
+
+def _cleanup() -> None:
+    # Perform clean up actions
+    Completer().teardown()
+    # TODO: delete .temp modules?
+
 def main() -> None:
     """
     Docstring for main
     """
 
-    display_logo()
+    _display_logo()
     # TODO: load stuff
-    # Load Configuration
+    _load()
     
-    # Setup commands tab completion
-    Completer().setup()
-
-    # Discover available modules
-    ModuleLoader().discover()
-
     # Start input loop
     CLIManager().run()
 
-    # Perform clean up actions
-    Completer().teardown()
-    # TODO: delete .temp modules?
+    _cleanup()
 
 
 if __name__ == "__main__":

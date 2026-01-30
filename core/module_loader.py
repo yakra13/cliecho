@@ -41,6 +41,9 @@ class ModuleLoader(Singleton):
         modules.sort()
         return modules
 
+    def get_module_count(self) -> int:
+        return len(self._discovered_modules)
+
     def discover(self) -> None:
         """Docstring for discover"""
         wheel_files = self._modules_path.glob("*.whl")
@@ -55,7 +58,7 @@ class ModuleLoader(Singleton):
 
                 meta = zf.read(meta_file).decode("utf8")
                 name = "UNABLE TO EXTRACT NAME" # TODO: better failing
-                print(f'{meta}')
+                # print(f'{meta}')
                 for line in meta.splitlines():
                     s = line.strip()
                     if s.startswith("Name:"):

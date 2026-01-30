@@ -1,7 +1,9 @@
 from datetime import datetime
+# from functools import cache
 from ipaddress import ip_address, ip_network
 import os
-from typing import Any, Iterable, Tuple
+from pathlib import Path
+from typing import Any, Callable, Iterable, Tuple, Union
 
 # from core.exceptions import GuardrailError
 from shared.util import MAX_UINT16, MIN_UINT16
@@ -34,26 +36,26 @@ def _parse_ip(entry: str):
 
     return ip_network(entry + "/32", strict=False)
 
-def validate_ip(address: str, guard_rails: Iterable[str]) -> bool:
-    """
-    """
-    # 192.168.0.1-150, 192.168.0.175, 172.9.0.0/12
-    # Check if it is a valid ip address
-    ip_addr = ip_address(address)
+# def validate_ip(address: str, guard_rails: Iterable[str]) -> bool:
+#     """
+#     """
+#     # 192.168.0.1-150, 192.168.0.175, 172.9.0.0/12
+#     # Check if it is a valid ip address
+#     ip_addr = ip_address(address)
 
-    for entry in guard_rails:
-        parsed = _parse_ip(entry)
+#     for entry in guard_rails:
+#         parsed = _parse_ip(entry)
 
-        # If parsed is a shorthand range
-        if isinstance(parsed, tuple):
-            start, end = parsed
-            if start <= ip_addr <= end:
-                return True
-        else:
-            if ip_addr in parsed:
-                return True
+#         # If parsed is a shorthand range
+#         if isinstance(parsed, tuple):
+#             start, end = parsed
+#             if start <= ip_addr <= end:
+#                 return True
+#         else:
+#             if ip_addr in parsed:
+#                 return True
 
-    return False
+#     return False
 
 # def _parse_port(entry: str) -> int | Tuple[int, int]:
 #     if '-' in entry:
@@ -98,7 +100,30 @@ def validate_ip(address: str, guard_rails: Iterable[str]) -> bool:
 
 #     return False
 
-def timestamp_format(format_str: str) -> bool:
+Validator = Callable[[Any], bool]
+
+# TODO: place this in util or something
+# @cache
+# def get_system_max_threads() -> int:
+#     """Calculates system thread capacity once and stores the result."""
+#     try:
+#         return len(os.sched_getaffinity(0))
+#     except AttributeError:
+#         return os.cpu_count() or 1
+
+def is_directory(path: Union[Path, str]) -> bool:
+    p = Path(path)
+    return not p.is_file()
+
+def is_in_range(min_val: int, max_val: int) -> Validator:
+    return lambda x: min_val <= int(x) <= max_val
+
+def is_port(port: int) -> bool:
+    # 1-65535
+    func = is_in_range(MIN_UINT16 + 1, MAX_UINT16)
+    return func(port)
+
+def is_timestamp(format_str: str) -> bool:
     try:
         datetime.now().strftime(format_str)
     except (ValueError, TypeError):
@@ -106,18 +131,24 @@ def timestamp_format(format_str: str) -> bool:
 
     return True
 
-def thread_count(max_threads: int) -> bool:
-    """
-    Get the maximum thread count and check value falls within the range of
-    0 to maximum thread count.
-    """
-    max_count: int = 0
+def is_ip_address(address: Union[str, int]) -> bool:
     try:
-        max_count = len(os.sched_getaffinity(0))
-    except AttributeError:
-        max_count = os.cpu_count() or 1
+        addr = ip_address(address)
+    except ValueError:
+        return False
     
-    return 0 <= max_threads <= max_count
+    return True
 
-def port_range(port: int) -> bool:
-    return MIN_UINT16 < port <= MAX_UINT16 
+
+# def thread_count(max_threads: int) -> bool:
+#     """
+#     Get the maximum thread count and check value falls within the range of
+#     0 to maximum thread count.
+#     """
+#     # max_count: int = 0
+#     # try:
+#     #     max_count = len(os.sched_getaffinity(0))
+#     # except AttributeError:
+#     #     max_count = os.cpu_count() or 1
+    
+#     return 0 <= int(max_threads) <= get_system_max_threads()
