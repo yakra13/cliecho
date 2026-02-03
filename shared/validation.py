@@ -3,7 +3,7 @@ from datetime import datetime
 from ipaddress import ip_address, ip_network
 import os
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple, Union
+from typing import Any, Callable, Iterable, NamedTuple, Optional, Tuple, Union
 
 # from core.exceptions import GuardrailError
 from shared.util import MAX_UINT16, MIN_UINT16
@@ -100,7 +100,12 @@ def _parse_ip(entry: str):
 
 #     return False
 
-Validator = Callable[[Any], bool]
+
+class ValidationResult(NamedTuple):
+    is_valid: bool
+    error: Optional[str] = None
+
+Validator = Callable[[Any], ValidationResult]
 
 # TODO: place this in util or something
 # @cache
@@ -111,33 +116,53 @@ Validator = Callable[[Any], bool]
 #     except AttributeError:
 #         return os.cpu_count() or 1
 
+# _last_error: Optional[str] = None
+
+# def get_last_error() -> Optional[str]:
+#     return _last_error
+
 def is_directory(path: Union[Path, str]) -> bool:
     p = Path(path)
     return not p.is_file()
 
-def is_in_range(min_val: int, max_val: int) -> Validator:
-    return lambda x: min_val <= int(x) <= max_val
+def is_in_range(min_val: Union[int, float], max_val: Union[int, float]) -> Validator:
+    def validate(value: Any) -> ValidationResult:
+        # global _last_error
+        # _last_error = None
 
-def is_port(port: int) -> bool:
+        if not isinstance(value, (int, float)):
+            # _last_error = f"Input '{value}' is a {type(value).__name__}, expected a number"
+            return ValidationResult(False, f"'{value}' is not a number")
+
+        if min_val <= value <= max_val:
+            return ValidationResult(True)
+
+        return ValidationResult(False)
+
+    return validate
+
+def is_port(port: int) -> ValidationResult:
     # 1-65535
     func = is_in_range(MIN_UINT16 + 1, MAX_UINT16)
     return func(port)
 
-def is_timestamp(format_str: str) -> bool:
+def is_timestamp(format_str: str) -> ValidationResult:
     try:
         datetime.now().strftime(format_str)
     except (ValueError, TypeError):
-        return False
+        return ValidationResult(False)
 
-    return True
+    return ValidationResult(True)
 
-def is_ip_address(address: Union[str, int]) -> bool:
+def is_ip_address(address: Union[str, int]) -> ValidationResult:
     try:
         addr = ip_address(address)
     except ValueError:
-        return False
+        return ValidationResult(False)
     
-    return True
+    return ValidationResult(True)
+
+# def is_ip_list_format(input_str: str) -> ValidationResult:
 
 
 # def thread_count(max_threads: int) -> bool:

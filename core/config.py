@@ -2,11 +2,11 @@ import configparser
 from dataclasses import dataclass, field, fields
 # from datetime import datetime
 from pathlib import Path
-from typing import Any, Final, List, Literal
+from typing import Any, Final, List, Literal, Optional
 
 # from shared.validation import validate_thread_count, timestamp_format
 from shared.util import get_system_max_threads
-from shared.validation import is_directory, is_in_range, is_timestamp
+from shared.validation import ValidationResult, Validator, is_directory, is_in_range, is_timestamp
 
 # from shared.module_logger import LOGGER
 
@@ -146,7 +146,7 @@ class AppConfig():
 
         parser = configparser.ConfigParser(interpolation=None)
 
-        content = parser.read(DEFAULT_CONFIG_FILE)
+        parser.read(DEFAULT_CONFIG_FILE)
 
         if self._DEFAULT_SECTION not in parser:
             self._config_errors.append(
@@ -158,48 +158,64 @@ class AppConfig():
             if f.name.startswith('_'):
                 continue
 
-            if f.name in parser[self._DEFAULT_SECTION]:
-                # Determine the getter function based of var type, default to string
-                getter_name = type_mapping.get(f.type, "get")
-                getter = getattr(parser, getter_name)
+            # Skip fields that are not in the config file
+            if not f.name in parser[self._DEFAULT_SECTION]:
+                continue
 
-                try:
-                    # Get the value with the appropriate getter
-                    # Throws ValueError if type doesn't match getter
-                    value = getter(self._DEFAULT_SECTION, f.name)
+            # Determine the getter function based of var type, default to string
+            getter_name = type_mapping.get(f.type, "get")
+            getter = getattr(parser, getter_name)
 
-                    # Handle special conversions
-                    match f.type:
-                        case type_ if type_ is Path:
-                            # Handle relative and absolute paths
-                            # Possible exceptions OSError/RuntimeError
-                            value = (APP_ROOT_DIR / value).resolve()
+            try:
+                # Get the value with the appropriate getter
+                # Throws ValueError if type doesn't match getter
+                value = getter(self._DEFAULT_SECTION, f.name)
 
-                except ValueError:
-                    # Type validation
-                    r = parser.get(self._DEFAULT_SECTION, f.name)
-                    t = str(f.type).split('.')[-1].replace("'>", "")
+                # Handle special conversions
+                match f.type:
+                    case type_ if type_ is Path:
+                        # Handle relative and absolute paths
+                        # Possible exceptions OSError/RuntimeError
+                        value = (APP_ROOT_DIR / value).resolve()
 
+            except ValueError:
+                # Type validation
+                r = parser.get(self._DEFAULT_SECTION, f.name)
+                t = str(f.type).split('.')[-1].replace("'>", "")
+
+                self._config_errors.append(
+                    f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}")
+
+            except (OSError, RuntimeError) as e:
+                r = parser.get(self._DEFAULT_SECTION, f.name)
+
+                self._config_errors.append(
+                    f"Path '{r}' is invalid: {e} using default: {f.default}")
+
+            else:
+                # Perform validation
+                validator: Optional[Validator] = f.metadata.get('validator')
+
+                error: Optional[str] = None
+
+                if value is None:
+                    # Should be caught in the ValueError except
+                    error = f"{f.metadata.get('error', '')}"
+                elif validator:
+                    result: ValidationResult = validator(value)
+
+                    if result.error:
+                        error = result.error
+                    elif not result.is_valid:
+                        error = f"{f.metadata.get('error', '')}"
+
+                if error:
                     self._config_errors.append(
-                        f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}")
-
-                except (OSError, RuntimeError) as e:
-                    r = parser.get(self._DEFAULT_SECTION, f.name)
-
-                    self._config_errors.append(
-                        f"Path '{r}' is invalid: {e} using default: {f.default}")
-
+                        f"Invalid value '{f.name}': {value}; {error}; using default: {f.default}")
                 else:
-                    # Perform validation
-                    validator = f.metadata.get('validator')
-
-                    if value is None or validator and not validator(value):
-                        self._config_errors.append(
-                            f"Invalid value '{f.name}': {value}; {f.metadata.get('error', '')}; using default: {f.default}")
-                        continue # Keep default setting
-
                     # Set the value
                     setattr(self, f.name, value)
+
         # Denote that default settings have been loaded
         self._initialized = True
 

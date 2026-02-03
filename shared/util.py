@@ -1,7 +1,7 @@
 from functools import cache
 import ipaddress
 import os
-from typing import Final
+from typing import Final, List
 
 MAX_INT8:  Final[int] = 2**(8 - 1) - 1
 MAX_INT16: Final[int] = 2**(16 - 1) - 1
@@ -66,11 +66,14 @@ IP_PATTERN = re.compile(r'^(\d{1,3}(?:\.\d{1,3}){3})(?:\/(\d{1,2})|\-(\d{1,3}))?
 def parse_ips(addresses: str, split_cidr: bool = False) -> List[str]:
     # 192.168.0.2-10, 192.168.1.0/24, 192.168.2.2
     # split on commas
-    unique_entries = set()
+    unique_entries = []
 
-    raw = [p.strip() for p in addresses.split(',')]
+    cidrs = set()
+    individuals = set()
 
-    for part in raw:
+    parts = [p.strip() for p in addresses.split(',')]
+
+    for part in parts:
         match = IP_PATTERN.match(part)
         if not match:
             # TODO: invalid formatting
@@ -78,17 +81,20 @@ def parse_ips(addresses: str, split_cidr: bool = False) -> List[str]:
 
         base_ip, cidr_bits, range_end = match.groups()
 
+        # Handle IPs in CIDR notation
         if cidr_bits:
             try:
-                net = ipaddress.ip_network(f"{base_ip}/{cidr_bits}", strict=False)
-                #TODO:
+                net = ipaddress.ip_network(part, strict=False)
+                # If the user specified to split CIDR get each ip address
                 if split_cidr:
-                    pass
+                    for ip in [cidr for cidr in net]:
+                        individuals.add(ip)
                 else:
-                    unique_entries.add(str(net))
+                    cidrs.add(str(net))
             except ValueError:
                 #TODO: invalid CIDR?
                 continue
+    
         elif range_end:
             # prefix, start_octet = base_ip.rsplit('.', 1)
             # start_num, end_num = int(start_val), int(range_end)
@@ -99,12 +105,24 @@ def parse_ips(addresses: str, split_cidr: bool = False) -> List[str]:
         
             if beg < end <= 255:
                 for i in range(beg, end + 1):
-                    unique_entries.add(f"{prefix}.{i}")
+                    individuals.add(f"{prefix}.{i}")
             else:
                 # TODO: invalid range
                 pass
         else:
-            unique_entries.add(base_ip)
+            individuals.add(base_ip)
+
+    # Combining individual and CIDR addresses only necessary if we do not split the CIDRS
+    if not split_cidr:
+        # Keep only individual IPs that are not covered by a CIDR
+        for ip in individuals:
+            ip_obj = ipaddress.ip_address(ip)
+            if not any(ip_obj in net for net in cidrs):
+                unique_entries.append(ip)
+
+        # Append each CIDR entry
+        for cidr in cidrs:
+            unique_entries.append(str(cidr))
 
     # Sort the list numerically
-    return sorted(list(unique_entries), key=lambda x: ipaddress.ip_address(x.split('/')[0]))
+    return sorted(unique_entries, key=lambda x: ipaddress.ip_address(x.split('/')[0]))
