@@ -9,49 +9,87 @@ from typing import Final, List
 
 import psutil
 
-MAX_INT8:  Final[int] = 2**(8 - 1) - 1
-MAX_INT16: Final[int] = 2**(16 - 1) - 1
-MAX_INT32: Final[int] = 2**(32 - 1) - 1
-MAX_INT64: Final[int] = 2**(64 - 1) - 1
+# --- Signed Integers (int) ---
+# 8-bit
+INT8_MIN: Final[int] = -(1 << 7)                # -128
+INT8_MAX: Final[int] = (1 << 7) - 1             # 127
+# 16-bit
+INT16_MIN: Final[int] = -(1 << 15)              # -32,768
+INT16_MAX: Final[int] = (1 << 15) - 1           # 32,767
+# 32-bit
+INT32_MIN: Final[int] = -(1 << 31)              # -2,147,483,648
+INT32_MAX: Final[int] = (1 << 31) - 1           # 2,147,483,647
+# 64-bit
+INT64_MIN: Final[int] = -(1 << 63)              # -9,223,372,036,854,775,808
+INT64_MAX: Final[int] = (1 << 63) - 1           # 9,223,372,036,854,775,807
 
-MAX_UINT8:  Final[int] = 2**8 - 1
-MAX_UINT16: Final[int] = 2**16 - 1
-MAX_UINT32: Final[int] = 2**32 - 1
-MAX_UINT64: Final[int] = 2**64 - 1
+# --- Unsigned Integers (uint) ---
+# 8-bit
+UINT8_MIN: Final[int] = 0
+UINT8_MAX: Final[int] = (1 << 8) - 1            # 255
+# 16-bit
+UINT16_MIN: Final[int] = 0
+UINT16_MAX: Final[int] = (1 << 16) - 1          # 65,535
+# 32-bit
+UINT32_MIN: Final[int] = 0
+UINT32_MAX: Final[int] = (1 << 32) - 1          # 4,294,967,295
+# 64-bit
+UINT64_MIN: Final[int] = 0
+UINT64_MAX: Final[int] = (1 << 64) - 1          # 18,446,744,073,709,551,615
 
-MIN_INT8:  Final[int] = -2**(8 - 1)
-MIN_INT16: Final[int] = -2**(16 - 1)
-MIN_INT32: Final[int] = -2**(32 - 1)
-MIN_INT64: Final[int] = -2**(64 - 1)
+# --- Unsigned Masks ---
+MASK_UINT8:  Final[int] = 0xFF                         # 8-bit mask
+MASK_UINT16: Final[int] = 0xFFFF                       # 16-bit mask
+MASK_UINT32: Final[int] = 0xFFFFFFFF                   # 32-bit mask
+MASK_UINT64: Final[int] = 0xFFFFFFFFFFFFFFFF           # 64-bit mask
 
-MIN_UINT8:  Final[int] = 0
-MIN_UINT16: Final[int] = 0
-MIN_UINT32: Final[int] = 0
-MIN_UINT64: Final[int] = 0
 
-def clamp_int8(value: int) -> int:
-    return max(MIN_INT8, min(MAX_INT8, int(value)))
+# MAX_INT8:  Final[int] = 2**(8 - 1) - 1
+# MAX_INT16: Final[int] = 2**(16 - 1) - 1
+# MAX_INT32: Final[int] = 2**(32 - 1) - 1
+# MAX_INT64: Final[int] = 2**(64 - 1) - 1
 
-def clamp_int16(value: int) -> int:
-    return max(MIN_INT16, min(MAX_INT16, int(value)))
+# MAX_UINT8:  Final[int] = 2**8 - 1
+# MAX_UINT16: Final[int] = 2**16 - 1
+# MAX_UINT32: Final[int] = 2**32 - 1
+# MAX_UINT64: Final[int] = 2**64 - 1
 
-def clamp_int32(value: int) -> int:
-    return max(MIN_INT32, min(MAX_INT32, int(value)))
+# MIN_INT8:  Final[int] = -2**(8 - 1)
+# MIN_INT16: Final[int] = -2**(16 - 1)
+# MIN_INT32: Final[int] = -2**(32 - 1)
+# MIN_INT64: Final[int] = -2**(64 - 1)
 
-def clamp_int64(value: int) -> int:
-    return max(MIN_INT64, min(MAX_INT64, int(value)))
+# MIN_UINT8:  Final[int] = 0
+# MIN_UINT16: Final[int] = 0
+# MIN_UINT32: Final[int] = 0
+# MIN_UINT64: Final[int] = 0
 
-def clamp_uint8(value: int) -> int:
-    return max(MIN_UINT8, min(MAX_UINT8, int(value)))
+# def clamp_int8(value: int) -> int:
+#     return max(MIN_INT8, min(MAX_INT8, int(value)))
 
-def clamp_uint16(value: int) -> int:
-    return max(MIN_UINT16, min(MAX_UINT16, int(value)))
+# def clamp_int16(value: int) -> int:
+#     return max(MIN_INT16, min(MAX_INT16, int(value)))
 
-def clamp_uint32(value: int) -> int:
-    return max(MIN_UINT32, min(MAX_UINT32, int(value)))
+# def clamp_int32(value: int) -> int:
+#     return max(MIN_INT32, min(MAX_INT32, int(value)))
 
-def clamp_uint64(value: int) -> int:
-    return max(MIN_UINT64, min(MAX_UINT64, int(value)))
+# def clamp_int64(value: int) -> int:
+#     return max(MIN_INT64, min(MAX_INT64, int(value)))
+
+# def clamp_uint8(value: int) -> int:
+#     return max(MIN_UINT8, min(MAX_UINT8, int(value)))
+
+# def clamp_uint16(value: int) -> int:
+#     return max(MIN_UINT16, min(MAX_UINT16, int(value)))
+
+# def clamp_uint32(value: int) -> int:
+#     return max(MIN_UINT32, min(MAX_UINT32, int(value)))
+
+# def clamp_uint64(value: int) -> int:
+#     return max(MIN_UINT64, min(MAX_UINT64, int(value)))
+
+def clamp(value: int, min_value: int, max_value: int) -> int:
+    return max(min_value, min(max_value, int(value)))
 
 def lerp(a: float, b: float, t: float) -> float:
     t = max(0.0, min(1.0, t))
