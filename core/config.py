@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Final, List, Literal, Optional
 
 # from shared.validation import validate_thread_count, timestamp_format
+from shared.log_types import EventLevel
+from shared.task import TaskMessage, TaskResult
 from shared.util import get_system_max_threads
 from shared.validation import ValidationResult, Validator, is_directory, is_in_range, is_timestamp
 
@@ -21,7 +23,7 @@ class AppConfig():
     """
     _DEFAULT_SECTION: Final[str] = "SETTINGS"
 
-    _config_errors: List[str] = field(default_factory=list, repr=False)
+    _config_errors: List[TaskMessage] = field(default_factory=list, repr=False)
     _initialized: bool = field(default=False, repr=False)
 
     # Directories
@@ -78,9 +80,9 @@ class AppConfig():
         'error': f"Valid range 0 - {get_system_max_threads()}"}) # 0 = automatic
 
     # def __init__(self):
-    @property
-    def errors(self) -> List[str]:
-        return self._config_errors
+    # @property
+    # def errors(self) -> List[str]:
+    #     return self._config_errors
 
     # def __post_init__(self):
     #     LOGGER.console_raw("Loading RedEcho configuration from file...")
@@ -103,11 +105,14 @@ class AppConfig():
             raise AttributeError(f"AppConfig field '{name}' is read-only after loading.")
         super().__setattr__(name, value)
 
-    def build_folder_structure(self) -> List[str]:
-        messages: List[str] = []
+    def build_workspace_task(self) -> TaskResult:
+        # messages: List[str] = []
+        task_result: TaskResult = TaskResult(False, [])
 
         if not self._initialized:
-            return messages
+            return TaskResult(
+                True,
+                [TaskMessage(EventLevel.ERROR, "Configuration must be loaded first")])
 
         # print(self.modules_path)
         # print(self.presets_path)
@@ -124,17 +129,22 @@ class AppConfig():
                 try:
                     path.mkdir(parents=True, exist_ok=True)
                     if not already_exists:
-                        messages.append(f"Created missing directory: {path.name}")
+                        # messages.append(f"Created missing directory: {path.name}")
+                        task_result.messages.append(
+                        TaskMessage(EventLevel.INFO, f"Created missing directory: {path.name}"))
                 except (PermissionError, OSError) as e:
-                    messages.append(f"Could not create {path}: {e}")
+                    # messages.append(f"Could not create {path}: {e}")
+                    task_result.messages.append(
+                        TaskMessage(EventLevel.WARN, f"Could not create {path}: {e}"))
 
-        return messages
+        return task_result
 
-    def load_default_settings(self) -> None:
+    def load_config_task(self, config_path: Path = DEFAULT_CONFIG_FILE) -> TaskResult:
         # Prevent reloading config settings
         # TODO: may want to allow some settings to be changed during run
+
         if self._initialized:
-            return
+            return TaskResult(True, [TaskMessage(EventLevel.INFO, "Already initialized")])
 
         type_mapping = {
             int: 'getint',
@@ -146,12 +156,12 @@ class AppConfig():
 
         parser = configparser.ConfigParser(interpolation=None)
 
-        parser.read(DEFAULT_CONFIG_FILE)
+        parser.read(config_path)
 
         if self._DEFAULT_SECTION not in parser:
-            self._config_errors.append(
-                f"Required '[{self._DEFAULT_SECTION}]' section label not found.")
-            return
+            self._config_errors.append(TaskMessage(EventLevel.ERROR,
+                f"Required '[{self._DEFAULT_SECTION}]' section label not found."))
+            return TaskResult(False, self._config_errors)
 
         for f in fields(self):
             # Skip private and protected variables
@@ -183,14 +193,14 @@ class AppConfig():
                 r = parser.get(self._DEFAULT_SECTION, f.name)
                 t = str(f.type).split('.')[-1].replace("'>", "")
 
-                self._config_errors.append(
-                    f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}")
+                self._config_errors.append(TaskMessage(EventLevel.WARN,
+                    f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}"))
 
             except (OSError, RuntimeError) as e:
                 r = parser.get(self._DEFAULT_SECTION, f.name)
 
-                self._config_errors.append(
-                    f"Path '{r}' is invalid: {e} using default: {f.default}")
+                self._config_errors.append(TaskMessage(EventLevel.WARN,
+                    f"Path '{r}' is invalid: {e} using default: {f.default}"))
 
             else:
                 # Perform validation
@@ -210,14 +220,20 @@ class AppConfig():
                         error = f"{f.metadata.get('error', '')}"
 
                 if error:
-                    self._config_errors.append(
-                        f"Invalid value '{f.name}': {value}; {error}; using default: {f.default}")
+                    self._config_errors.append(TaskMessage(EventLevel.WARN,
+                        f"Invalid value '{f.name}': {value}; {error}; using default: {f.default}"))
                 else:
                     # Set the value
                     setattr(self, f.name, value)
 
         # Denote that default settings have been loaded
         self._initialized = True
+        if err_count := len(self._config_errors) > 0:
+            err_task_msg = TaskMessage(EventLevel.ERROR, 
+                f"{err_count} error{'s' if err_count > 1 else ''} detected in configuration.")
+            self._config_errors.insert(0, err_task_msg)
+
+        return TaskResult(True, self._config_errors)
 
 CONFIG = AppConfig()
 # CONFIG.load_default_settings()

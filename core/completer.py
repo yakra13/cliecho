@@ -27,7 +27,7 @@ class Completer:
     _original_completer: Optional[CompleterFn] = None
 
     @classmethod
-    def setup(cls):
+    def setup(cls) -> None:
         """Prepares the command line for tab completions."""
         cls._original_completer = readline.get_completer()
         readline.set_completer(cls._completer)

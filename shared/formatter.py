@@ -109,7 +109,7 @@ def format_list_as_grid(items: List[str],
 #     """
 #     raise NotImplementedError("format_module_settings: Not implemented")
 
-def format_timestamp_standard(timestamp: datetime) -> str:
+def format_timestamp_console(timestamp: datetime) -> str:
     """
     Returns a formatted string of the timestamp.
     example: 2000-01-01 23:00:00

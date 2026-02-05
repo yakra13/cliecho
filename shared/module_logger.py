@@ -1,6 +1,6 @@
 """
 """
-from enum import Enum
+from enum import Enum, auto
 import getpass
 import json
 import readline
@@ -10,24 +10,26 @@ import threading
 
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from queue import Queue
-from typing import Dict, Final, Iterable, List, Literal, Optional
+from typing import Any, Dict, Final, Iterable, List, Literal, Optional
 
 
 # from shared.module_base import ModuleBase
 
+from core.config import CONFIG
 from shared.ansi import AnsiStyle
-from shared.log_types import EventLog, EventLevel, EventChannel
+# from shared.log_types import EventLog, EventLevel, EventChannel
 from shared.module_context import ModuleContext
 from shared.color import Color
-from shared.formatter import style_text #Color, FGColor, color_text
+from shared.formatter import format_timestamp_console, format_timestamp_epoch, style_text
+from shared.util import get_system_hostname, get_system_username #Color, FGColor, color_text
 
 # Context-local variables. Each module thread gets its own. Allows the logger to access the events
 # and module context data belonging to its specific module thread
-_CURRENT_EVENT_QUEUE: ContextVar[Optional[Queue]]           = ContextVar("current_queue", default=None)
+_CURRENT_EVENT_QUEUE: ContextVar[Optional[Queue]]            = ContextVar("current_queue", default=None)
 _CURRENT_MODULE_CONTEXT: ContextVar[Optional[ModuleContext]] = ContextVar("module_context", default=None)
 
 @contextmanager
@@ -45,6 +47,66 @@ def module_logging_context(context: ModuleContext):
         yield
     finally:
         _CURRENT_MODULE_CONTEXT.reset(token)
+
+
+class EventLevel(Enum):
+    """Defines the log level of events"""
+    INFO  = auto()
+    WARN  = auto()
+    ERROR = auto()
+    DEBUG = auto()
+    RAW   = auto()
+    # TODO: Special Log levels?
+    @property
+    def color(self) -> Optional[Color]:
+        mapping = {
+            EventLevel.INFO: Color.White,
+            EventLevel.WARN: Color.Yellow,
+            EventLevel.ERROR: Color.Red,
+            EventLevel.DEBUG: Color.Cyan,
+            EventLevel.RAW: None
+        }
+
+        return mapping.get(self, None)
+
+
+class EventChannel(Enum):
+    """Defines channels that events emit on"""
+    CONSOLE = auto() # stdout
+    LOG     = auto() # to file
+
+
+@dataclass
+class EventLog:
+    """Dataclass containing event log information"""
+    event_level: EventLevel
+    event_channel: EventChannel
+    message: str
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc)) # TODO: standardize/globalize timezone
+    username: Optional[str] = None # = field(default_factory=getpass.getuser)
+    hostname: Optional[str] = None # = field(default_factory=socket.gethostname)
+
+    module_name: Optional[str] = None
+    module_options: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.username = get_system_username()
+        self.hostname = get_system_hostname()
+
+        if (ctx := _CURRENT_MODULE_CONTEXT.get()):
+            self.module_name = self.module_name or ctx.name
+            self.module_options = self.module_options or ctx.options
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts this event into a dictionary format."""
+        d = asdict(self)
+
+        d["timestamp"]     = format_timestamp_epoch(self.timestamp)
+        d["event_level"]   = self.event_level.name
+        d["event_channel"] = self.event_channel.name
+
+        return d
 
 
 class _ModuleLogger:
@@ -66,20 +128,11 @@ class _ModuleLogger:
 
     def _format_console_output(self, event: EventLog) -> str:
         # TODO: defined colorization options from config file?
+        # Do not format RAW events
         if event.event_level == EventLevel.RAW:
             return event.message
 
-        log_level_color: Optional[Color] = None
-
-        match event.event_level:
-            case EventLevel.ERROR:
-                log_level_color = Color.Red
-            case EventLevel.WARN:
-                log_level_color = Color.Yellow
-            case EventLevel.DEBUG:
-                log_level_color = Color.Cyan
-
-        timestamp = style_text(text=self._format_timestamp(event.timestamp),
+        timestamp = style_text(text=format_timestamp_console(event.timestamp),
                                #event.timestamp.isoformat(),
                                styles=[AnsiStyle.DIM])
 
@@ -89,29 +142,30 @@ class _ModuleLogger:
                             styles=[AnsiStyle.DIM])
         
         level = style_text(text=event.event_level.name,
-                           text_color=log_level_color,
+                           text_color=event.event_level.color,
                            styles=[AnsiStyle.BOLD])
         
         return f"{timestamp} {module} {level}: {event.message}"
 
-    def _format_timestamp(self, timestamp: datetime) -> str:
-        return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    # def _format_timestamp(self, timestamp: datetime) -> str:
+    #     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
-    def _prepare_event_data(self, event: EventLog) -> None:
-        """Populates event data with username, hostname, module settings."""
-        if event.username is None:
-            event.username = self._username
+    # def _prepare_event_data(self, event: EventLog) -> None:
+    #     """Populates event data with username, hostname, module settings."""
+    #     if event.username is None:
+    #         event.username = self._username
 
-        if event.hostname is None:
-            event.hostname = self._hostname
+    #     if event.hostname is None:
+    #         event.hostname = self._hostname
 
-        if module_context := _CURRENT_MODULE_CONTEXT.get():
-            event.module_name = module_context.name
-            event.module_options = module_context.options
+    #     if module_context := _CURRENT_MODULE_CONTEXT.get():
+    #         event.module_name = module_context.name
+    #         event.module_options = module_context.options
 
     def _emit_event(self, event: EventLog) -> None:
         """Emit event on their associated channel"""       
-        self._prepare_event_data(event)
+        # TODO: this should be automatic now; test it no idea if it works
+        # self._prepare_event_data(event)
 
         # If an event queue is present let the core handle logging
         if event_queue := _CURRENT_EVENT_QUEUE.get():
@@ -128,7 +182,8 @@ class _ModuleLogger:
             # /var/logs/re
             # %LOCALAPPDATA%\RE\logs
             module_name: str = event.module_name or "unknown_module"
-            log_path: Path = self._log_path / module_name
+            log_path: Path = CONFIG.logs_path / module_name
+            event.
             log_file: Path = log_path / f"{module_name}.log"
 
             if not log_path.exists():

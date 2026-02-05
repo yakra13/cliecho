@@ -7,6 +7,8 @@ TODO: docstring
 # from queue import Empty, Queue
 # from typing import List
 
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, NamedTuple, Optional
 from core.cli_manager import CLIManager
 from core.completer import Completer
 # from core.dispatcher import Dispatcher
@@ -15,8 +17,10 @@ from core.module_loader import ModuleLoader
 from shared.ansi import AnsiStyle
 from shared.color import Color, lerp_color
 from shared.formatter import style_text
+from shared.log_types import EventLevel
 from shared.module_logger import LOGGER
-from core.config import CONFIG # TODO: move config to core
+from core.config import CONFIG
+from shared.task import Task
 
 def _display_logo() -> None:
     text = """
@@ -80,13 +84,25 @@ def _display_logo() -> None:
 # ╒ ╕ ╘ ╛
 # ╞ ╡ ╤ ╧ ╟ ╢
 
-def _load() -> None:
+
+def _load(tasks: List[Task]) -> None:
+
+
+    for task in tasks:
+        LOGGER.console_raw(f"{task.name}...")
+        result = task.execute()
+
+        if not result:
+            pass
+
+
     # Load Configuration
     LOGGER.console_raw("Loading configuration.")
-    CONFIG.load_default_settings()
+    CONFIG.load_config_task()
     
+    # Check for any errors in the configuration file
     err_count = len(CONFIG.errors)
-    
+    # Report any errors found
     if err_count > 0:
         LOGGER.console_raw(
             style_text(
@@ -98,7 +114,9 @@ def _load() -> None:
 
     # Validate/Create Paths
     LOGGER.console_raw("Validating and creating folder structure.")
-    messages = CONFIG.build_folder_structure()
+
+    messages = CONFIG.build_workspace_task()
+
     for message in messages:
         LOGGER.console_raw(style_text(f"  {message}", Color.Yellow))
 
@@ -125,7 +143,14 @@ def main() -> None:
 
     _display_logo()
     # TODO: load stuff
-    _load()
+    tasks: List[Task] = [
+        Task("Load Configuration", CONFIG.load_config_task),
+        Task("Create Workspace", CONFIG.build_workspace_task),
+        Task("Setup Environment", Completer().setup)
+    ]
+
+    
+    _load(tasks)
     
     # Start input loop
     CLIManager().run()
