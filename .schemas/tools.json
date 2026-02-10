@@ -54,8 +54,7 @@
 					"anyOf": [
 						{ "type": "string", "format": "ipv4" },
 						{ "type": "string", "format": "ipv6" },
-						{ "type": "null" }
-					]
+						{ "type": "null" }]
 				}
 			}
 		},
@@ -65,8 +64,7 @@
 				"default": {
 					"anyOf": [
 						{ "type": "integer", "minimum": 1, "maximum": 65535 },
-						{ "type": "null" }
-					]
+						{ "type": "null" }]
 				}
 			}
 		},
@@ -76,8 +74,7 @@
 				"default": {
 					"anyOf": [
 						{ "type": "string", "pattern": "^[a-fA-F0-9]{32}:[a-fA-F0-9]{32}$" },
-						{ "type": "null" }
-					]
+						{ "type": "null" }]
 				}
 			}
 		},
@@ -87,8 +84,7 @@
 				"default": {
 					"anyOf": [
 						{ "type": "string", "pattern": "^([a-fA-F0-9]{32}|[a-fA-F0-9]{64})$" },
-						{ "type": "null" }
-					]
+						{ "type": "null" }]
 				}
 			}
 		}
