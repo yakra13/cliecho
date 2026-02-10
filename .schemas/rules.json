@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org",
+  "title": "Guardrail Ruleset",
+  "type": "object",
+  "properties": {
+    "guardrails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A descriptive name for the rule."
+          },
+          "action": {
+            "type": "string",
+            "enum": ["ALLOW", "DENY"],
+            "description": "The result if this rule matches."
+          },
+          "tool_id": {
+            "type": "string",
+            "enum": ["tool_a", "tool_b", "tool_c"],
+            "description": "Optional: Specific tool this rule applies to."
+          },
+          "destination": {
+            "type": "string",
+            "description": "Optional: IP, Subnet, or Domain."
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional: Custom message shown to the user on denial."
+          }
+        },
+        "required": ["name", "action"]
+      }
+    }
+  }
+}

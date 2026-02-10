@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=./schema.json
+# rules.yaml
+guardrails:
+  - name: "Exception: Tool-B Admin Access"
+    action: "ALLOW"
+    tool_id: "tool_b"
+    destination: "10.0.0.100" # The DC
+    
+  - name: "Global Safety: No DC Access"
+    action: "DENY"
+    destination: "10.0.0.100"
+    message: "Critical Infrastructure protection: Access denied."
+
+  - name: "General Access"
+    action: "ALLOW"
+    destination: "192.168.1.0/24"
+
+  - name: "something"
+    tool_id: "tool_c"
+
+# jsonschema
+# .vscode/settings.json
+# {
+#   "yaml.schemas": {
+#     "./schema.json": ["rules.yaml", "config/*.yaml"]
+#   }
+# }

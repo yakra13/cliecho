@@ -1,14 +1,80 @@
-description: "new_test_module description"
-arguments:
-    required:
-        examplerequired:
-            description: "description"
-            default: "default_value"
-            help: "help text"
-            shortname: "?"
+# description: "new_test_module description"
+# arguments:
+#     required:
+#         examplerequired:
+#             description: "description"
+#             default: "default_value"
+#             help: "help text"
+#             shortname: "?"
 
-    optional:
-        exampleoptional:
-            description: "description"
-            help: "help text"
-            shortname: "?"
+#     optional:
+#         exampleoptional:
+#             description: "description"
+#             help: "help text"
+#             shortname: "?"
+
+
+description: >
+    Some description 
+    that is mult line
+    \n will be replaced
+    with spaces making this
+    a single line
+arguments:
+    remote_host:
+        type: RHOST
+        description: some description
+        help: |
+            Usage:
+                - This will preserve newlines
+            So all of this will appear as it is written here
+        flag: --rhost
+        is_required: true
+        default: null
+
+
+# "properties": {
+#                         "destination": { "$ref": "#/definitions/ipv4_host" },
+#                         "remote_host": { "$ref": "#/definitions/ipv4_host" },
+#                         "target":      { "$ref": "#/definitions/ipv4_host" }
+#                     }
+
+# "allOf": [
+#     { "$ref": "#/definitions/arg_base" },
+#     {
+#         "if": { "properties": { "type": { "enum": ["LHOST", "RHOST"] } } },
+#         "then": {
+#             "properties": {
+#                 "default": {
+#                     "anyOf": [
+#                         { "format": "ipv4" },
+#                         { "format": "ipv4" },
+#                         { "type": "null" }]
+#                 }
+#             }
+#         }
+#     },
+#     {
+#         "if": { "properties": { "type": { "enum": ["LPORT", RPORT] } } },
+#         "then": {
+#             "properties": {
+#                 "default": {
+#                     "anyOf": [
+#                         { "type": "integer", "minimum": 1, "maximum": 65535 },
+#                         { "type": "null" }
+#                     ]
+#                 }
+#             }
+#         }
+#     },
+#     {
+#         "if": { "properties": { "type": { "const": "STRING" } } },
+#         "then": {
+#             "properties": {
+#                 "default": {
+#                     "type": ["string", "null"]
+#                 }
+#             }
+#         }
+#     }
+# ]

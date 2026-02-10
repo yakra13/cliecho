@@ -1,0 +1,150 @@
+{
+	"$schema": "http://json-schema.org",
+	"title": "Tool Parameters",
+	"definitions": {
+		"arg_base": {
+			"type": "object",
+			"properties": {
+				"description": { "type": "string" },
+				"flag": { "type": "string", "pattern": "^-[a-zA-Z]$|^--[a-zA-Z0-9]+$" },
+				"help": { "type": "string" },
+				"is_required": { "type": "boolean", "default": false },
+				"type": {
+					"enum": [
+						"LHOST",
+						"LPORT",
+						"RHOST",
+						"RPORT",
+						"USERNAME",
+						"PASSWORD",
+						"NTLMHASH",
+						"DOMAIN",
+						"DOMAIN_CONTROLLER",
+						"PROTOCOL",
+						"AESKEY",
+						"STRING"
+					]
+				}
+			},
+			"required": ["description", "flag", "help", "type"]
+		},
+		"protocol_type": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"type": ["string", "null"],
+					"enum": ["tcp", "udp", "TCP", "UDP", "null"],
+					"default": "tcp",
+					"description": "Transport protocol to use (tcp/udp)"
+				}
+			}
+		},
+		"domain_type": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"anyOf": [{ "type": "string", "format": "hostname" }, { "type": "null" }]
+				}
+			}
+		},
+		"host_type": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"anyOf": [
+						{ "type": "string", "format": "ipv4" },
+						{ "type": "string", "format": "ipv6" },
+						{ "type": "null" }
+					]
+				}
+			}
+		},
+		"port_type": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"anyOf": [
+						{ "type": "integer", "minimum": 1, "maximum": 65535 },
+						{ "type": "null" }
+					]
+				}
+			}
+		},
+		"ntlmhash_type": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"anyOf": [
+						{ "type": "string", "pattern": "^[a-fA-F0-9]{32}:[a-fA-F0-9]{32}$" },
+						{ "type": "null" }
+					]
+				}
+			}
+		},
+		"aeskey_type": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"anyOf": [
+						{ "type": "string", "pattern": "^([a-fA-F0-9]{32}|[a-fA-F0-9]{64})$" },
+						{ "type": "null" }
+					]
+				}
+			}
+		}
+	},
+	"type": "object",
+	"properties": {
+		"description": {
+			"type": "string",
+			"description": "Tool description"
+		},
+		"arguments": {
+			"type": "object",
+			"patternProperties": {
+				"^[a-z_]+$": { 
+					"allOf": [
+						{ "$ref": "#/definitions/arg_base" },
+						{
+							"if": { "properties": { "type": { "enum": ["LHOST", "RHOST"] } } },
+							"then": { "$ref": "#/definitions/host_type" }
+						},
+						{
+							"if": { "properties": { "type": { "enum": ["LPORT", "RPORT"] } } },
+							"then": { "$ref": "#/definitions/port_type" }
+						},
+						{
+							"if": { "properties": { "type": { "const": "PROTOCOL" } } },
+							"then": { "$ref": "#/definitions/protocol_type" }
+						},
+						{
+							"if": { "properties": { "type": { "enum": ["DOMAIN", "DOMAIN_CONTROLLER"] } } },
+							"then": { "$ref": "#/definitions/domain_type" }
+						},
+						{
+							"if": { "properties": { "type": { "const": "NTLMHASH" } } },
+							"then": { "$ref": "#/definitions/ntlmhash_type" }
+						},
+						{
+							"if": { "properties": { "type": { "const": "AESKEY" } } },
+							"then": { "$ref": "#/definitions/aeskey_type" }
+						},
+						{
+							"if": { "properties": { "type": { "enum": ["USERNAME", "PASSWORD", "STRING"] } } },
+							"then": {
+								"properties": {
+									"default": {
+										"type": ["string", "null"]
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			"additionalProperties": false
+		}
+	},
+	"required": ["description", "arguments"],
+	"additionalProperties": false
+}

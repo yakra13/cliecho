@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org",
+  "title": "Guardrail Ruleset",
+  "type": "object",
+  "properties": {
+    "guardrails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A descriptive name for the rule."
+          },
+          "action": {
+            "type": "string",
+            "enum": ["ALLOW", "DENY"],
+            "description": "The result if this rule matches."
+          },
+          "tool_id": {
+            "type": "string",
+            "enum": ["tool_a", "tool_b", "tool_c"],
+            "description": "Optional: Specific tool this rule applies to."
+          },
+          "destination": {
+            "type": "string",
+            "description": "Optional: IP, Subnet, or Domain."
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional: Custom message shown to the user on denial."
+          }
+        },
+        "required": ["name", "action"]
+      }
+    }
+  }
+}
+
+
+"port": {
+  "type": "integer",
+  "minimum": 1,
+  "maximum": 65535
+}
+"enabled": {
+  "type": "boolean"
+}
+"blocked_ports": {
+  "type": "array",
+  "items": { "type": "integer" },
+  "uniqueItems": true
+}
+"network_info": {
+  "type": "object",
+  "properties": {
+    "ip": { "type": "string" },
+    "mask": { "type": "integer" }
+  }
+}
+"destination_ip": {
+  "type": "string",
+  "format": "ipv4" 
+}
+
+# validation
+import yaml
+from jsonschema import validate
+
+# Load your rule file
+with open("rules.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
+# Load the schema (defined above)
+with open("schema.json", "r") as f:
+    schema = json.load(f)
+
+# This will raise a ValidationError if the user messed up the YAML
+validate(instance=config, schema=schema)
+
+
+# vary field names tied to underlying type
+"properties": {
+  "target": {
+    "type": "string",
+    "x-internal-type": "destination",
+    "description": "User-facing name for this tool's target."
+  },
+  "remote_host": {
+    "type": "string",
+    "x-internal-type": "destination",
+    "description": "Another name used by a different tool."
+  }
+}
+
+def get_internal_args(user_yaml, schema):
+    internal_data = {}
+    
+    # Loop through the fields defined in the tool's schema
+    for field_name, metadata in schema['properties'].items():
+        if field_name in user_yaml:
+            # Map the user's value to the internal standard name
+            internal_key = metadata.get('x-internal-type', field_name)
+            internal_data[internal_key] = user_yaml[field_name]
+            
+    return internal_data
+
+# Result:
+# User Input: {"target": "10.0.0.1"}
+# Output: {"destination": "10.0.0.1"}
