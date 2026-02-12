@@ -12,7 +12,7 @@ from shared.module_logger import LOGGER
 class ModuleArg:
     """Dataclass representing a module argument and its settings."""
     description: str
-    required: bool = False    
+    is_required: bool = False    
     default_value: Optional[Union[str, List[str]]] = None
     help: Optional[str] = None
     shortname: Optional[str] = None
@@ -50,7 +50,7 @@ class ModuleBase:
         for name, spec in args.get("required", {}).items():
             self._module_args[name] = ModuleArg(
                 description   = spec["description"],
-                required      = True,
+                is_required      = True,
                 default_value = spec.get("default"),
                 help          = spec.get("help"),
                 shortname     = spec.get("shortname"),
@@ -64,7 +64,7 @@ class ModuleBase:
         for name, spec in args.get("optional", {}).items():
             self._module_args[name] = ModuleArg(
                 description   = spec["description"],
-                required      = False,
+                is_required      = False,
                 default_value = spec.get("default"),
                 help          = spec.get("help"),
                 shortname     = spec.get("shortname"),
@@ -115,7 +115,7 @@ class ModuleBase:
     #     self._message_queue = queue
 
     @final
-    def set_param(self, key: str, val: str):
+    def set_param(self, key: str, val: str) -> None:
         """
         Docstring for set_param
         
@@ -134,7 +134,7 @@ class ModuleBase:
             raise ValueError() from e
 
     @final    
-    def get_param(self, key):
+    def get_param(self, key) -> Any:
         """
         Docstring for get_param
 
@@ -172,7 +172,7 @@ class ModuleBase:
         missing_args: List[str] = []
 
         for name, arg in self._module_args.items():
-            if arg.required and self._options.get(name) is None:
+            if arg.is_required and self._options.get(name) is None:
                 missing_args.append(name)
 
         if missing_args:

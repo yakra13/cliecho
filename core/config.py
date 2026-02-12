@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any, Final, List, Literal, Optional
 
 # from shared.validation import validate_thread_count, timestamp_format
-from shared.log_types import EventLevel
+from shared.module_logger import EventLevel
 from shared.task import TaskMessage, TaskResult
-from shared.util import get_system_max_threads
+from shared.util import SystemInfo
 from shared.validation import ValidationResult, Validator, is_directory, is_in_range, is_timestamp
 
 # from shared.module_logger import LOGGER
@@ -76,8 +76,8 @@ class AppConfig():
 
     max_thread_count: int   = field(
         default=0,
-        metadata={'validator': is_in_range(0, get_system_max_threads()),
-        'error': f"Valid range 0 - {get_system_max_threads()}"}) # 0 = automatic
+        metadata={'validator': is_in_range(0, SystemInfo.get_system_max_threads()),
+        'error': f"Valid range 0 - {SystemInfo.get_system_max_threads()}"}) # 0 = automatic
 
     # def __init__(self):
     # @property

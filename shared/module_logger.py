@@ -25,7 +25,7 @@ from shared.ansi import AnsiStyle
 from shared.module_context import ModuleContext
 from shared.color import Color
 from shared.formatter import format_timestamp_console, format_timestamp_epoch, style_text
-from shared.util import get_system_hostname, get_system_username #Color, FGColor, color_text
+from shared.util import SystemInfo #get_system_hostname, get_system_username #Color, FGColor, color_text
 
 # Context-local variables. Each module thread gets its own. Allows the logger to access the events
 # and module context data belonging to its specific module thread
@@ -91,8 +91,8 @@ class EventLog:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.username = get_system_username()
-        self.hostname = get_system_hostname()
+        self.username = SystemInfo.get_system_username()
+        self.hostname = SystemInfo.get_system_hostname()
 
         if (ctx := _CURRENT_MODULE_CONTEXT.get()):
             self.module_name = self.module_name or ctx.name
@@ -111,8 +111,8 @@ class EventLog:
 
 class _ModuleLogger:
     # Gather username and hostname for use in logs
-    _username: str = getpass.getuser()
-    _hostname: str = socket.gethostname()
+    # _username: str = getpass.getuser()
+    # _hostname: str = socket.gethostname()
 
     def __init__(self):
         self._io_lock: threading.Lock = threading.Lock()
@@ -183,7 +183,7 @@ class _ModuleLogger:
             # %LOCALAPPDATA%\RE\logs
             module_name: str = event.module_name or "unknown_module"
             log_path: Path = CONFIG.logs_path / module_name
-            event.
+            # event.
             log_file: Path = log_path / f"{module_name}.log"
 
             if not log_path.exists():

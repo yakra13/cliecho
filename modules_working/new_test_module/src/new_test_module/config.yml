@@ -22,15 +22,18 @@ description: >
   a single line
 arguments:
   remote_host:
-    type: RHOST
+    type: AESKEY
     description: some description
     help: |
       Usage:
         - This will preserve newlines
       So all of this will appear as it is written here
-    flag: --rhost
+    flag: -c
     is_required: true
-    default: null
+    default: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+
+
 
 
 # "properties": {

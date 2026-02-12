@@ -104,6 +104,13 @@ class Dispatcher(Singleton):
 
         return ""
 
+    def set_param(self, key: str, value: str):
+        module: Optional[ModuleBase] = self.current_module
+        if not module:
+            return
+        
+        module.set_param(key, value)
+
     def _cmd_set_param(self, args: List[str]) -> str:
         module: Optional[ModuleBase] = self.current_module
         if not module:

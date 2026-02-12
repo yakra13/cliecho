@@ -105,6 +105,7 @@ class CLIManager(Singleton):
     def handle_set(self, args: Sequence[str]) -> None:
         """ Handle set command. """
         # TODO: handle current module set param value
+        Dispatcher().set_param(args[0], args[1])
         print(f"handle set: {args}")
 
     def handle_preset_save(self, args: Sequence[str]) -> None:

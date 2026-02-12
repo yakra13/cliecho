@@ -12,8 +12,8 @@ from core.dispatcher import Dispatcher
 # from core.module_loader import ModuleLoader
 from core.command_registry import CommandNode, build_command_registry
 # from core.output_formatter import format_list_as_grid
-from shared.ansi import AnsiStyle
-from shared.color import Color
+# from shared.ansi import AnsiStyle
+# from shared.color import Color
 from shared.formatter import format_list_as_grid, style_text
 
 # Type definition for command line completer function
@@ -35,7 +35,7 @@ class Completer:
         readline.set_completion_display_matches_hook(cls._display_matches_hook)
 
     @classmethod
-    def teardown(cls):
+    def teardown(cls) -> None:
         """
         Returns the completer to the original completer.
         Should be preformed before exiting.

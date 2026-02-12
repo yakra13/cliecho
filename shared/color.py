@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import ClassVar
 
-from shared.util import clamp_uint8, lerp
+from shared.util import UINT8_MAX, UINT8_MIN, clamp, lerp
 
 @dataclass(frozen=True, slots=True)
 class Color:
@@ -92,9 +92,9 @@ class Color:
     #endregion
 
     def __post_init__(self):
-        object.__setattr__(self, 'R', clamp_uint8(self.R))
-        object.__setattr__(self, 'G', clamp_uint8(self.G))
-        object.__setattr__(self, 'B', clamp_uint8(self.B))
+        object.__setattr__(self, 'R', clamp(self.R, UINT8_MIN, UINT8_MAX))
+        object.__setattr__(self, 'G', clamp(self.G, UINT8_MIN, UINT8_MAX))
+        object.__setattr__(self, 'B', clamp(self.B, UINT8_MIN, UINT8_MAX))
 
 # region Color Constants
  
