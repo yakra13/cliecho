@@ -11,6 +11,18 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from shared.ansi import AnsiStyle, AnsiSupport, ljust_ansi, visible_len, SUPPORTED_ANSI
 from shared.color import Color, estimate_ansi_color
+from shared.module_logger import EventLog
+
+
+class Formatter:
+    def format(self, event: EventLog) -> str:
+        return ''
+
+class JsonFormatter(Formatter):
+    def format(self, event: EventLog) -> str:
+        import json
+        return json.dumps(event.to_dict(), separators=(',', ':'))
+
 
 def _to_column_major(items: List[str], columns: int) -> List[str]:
     """

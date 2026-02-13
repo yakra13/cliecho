@@ -1,5 +1,5 @@
 from importlib.resources import files
-from shared.module_logger import module_logging_context, LOGGER
+from shared.module_logger import module_logging_context, LOGGER, logging_context
 from shared.module_context import ModuleContext
 from . import NewTestModule
 
@@ -16,8 +16,13 @@ def main():
         options=mod.get_settings() if hasattr(mod, "get_current_settings") else {}
     )
 
-    with module_logging_context(context):
-        LOGGER.log_info("Begin Execution")
+    # with module_logging_context(context):
+    #     LOGGER.log_info("Begin Execution")
+    #     mod.run()
+
+    with logging_context(module_name=context.name,
+                         module_options=context.options,):
+        LOGGER.log_info("Begin execution")
         mod.run()
 
 def show_help():
