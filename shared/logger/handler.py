@@ -1,13 +1,13 @@
 from pathlib import Path
 import sys
-from typing import Callable, Dict, TextIO
+from typing import Callable, Dict, Literal, TextIO
 
 from formatter import Formatter
 from log_event import EventLog
 
 class Handler:
 	def __init__(self, formatter: Formatter):
-		self._formatter = formatter
+		self._formatter: Formatter = formatter
 
 	def emit(self, event: EventLog) -> None:
 		pass
@@ -15,7 +15,8 @@ class Handler:
 
 class FileHandler(Handler):
 	def __init__(self, formatter: Formatter, directory: Path): #, router: Callable[[object], Path]):
-		self._formatter: Formatter = formatter
+		# self._formatter: Formatter = formatter
+		super().__init__(formatter)
 		self._directory: Path = directory
 		# self._router: Callable[[object], Path] = router
 		self._files: Dict[str, TextIO] = {}
@@ -57,16 +58,20 @@ class FileHandler(Handler):
 
 
 
-class StreamHandler(Handler):
+class ConsoleHandler(Handler):
+	# def __init__(self, formatter: Formatter, stream: Literal['stdout', 'stderr'] = 'stdout'):
+	# 	super().__init__(formatter)
+	# 	self._stream: TextIO = sys.stdout if stream == 'stderr' else sys.stdout
+
 	def emit(self, event: EventLog):
 		sys.stdout.write(self._formatter.format(event))
 		sys.stdout.flush()
 
-class ContextFileHandler(Handler):
-	def __init__(self, base_dir: Path, formatter: Formatter):
-		self._base_dir = base_dir
-		self._formatter = formatter
+# class ContextFileHandler(Handler):
+# 	def __init__(self, base_dir: Path, formatter: Formatter):
+# 		self._base_dir = base_dir
+# 		self._formatter = formatter
 
-	def _get_file(self, event: EventLog)
+# 	def _get_file(self, event: EventLog)
 
-	def emit(self, event: EventLog):
+# 	def emit(self, event: EventLog):

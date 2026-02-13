@@ -1,17 +1,17 @@
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from enum import Enum, auto
+# from dataclasses import asdict, dataclass, field
+# from datetime import datetime, timezone
+# from enum import Enum, auto
 from pathlib import Path
 import threading
 from typing import Any, Dict, Literal, Optional, Set
 
 from log_event import EventLevel, EventLog
-from handler import Handler, FileHandler#, ConsoleHandler
+from handler import FileHandler, ConsoleHandler
 from context import Context, normalize_context
 
-Destination = Literal["file", "stdout", "stderr"]
+Destination = Literal["file", "console"]
 DestinationCollection = Set[Destination]
 
 _LOG_CONTEXT: ContextVar[Dict[str, Any]] = ContextVar("log_context", default={})
@@ -50,14 +50,24 @@ def logging_context(context: Optional[Context] = None, **kwargs: Any):
 class Logger:
 	def __init__(self):
 		self._io_lock: threading.Lock = threading.Lock()
-		self._log_dir: Path # TODO
+		# self._log_dir: Path # TODO
 		self._file_handler: FileHandler
 		self._console_out_handler: ConsoleHandler
-		self._console_err_handler: ConsoleHandler
+		# self._console_err_handler: ConsoleHandler
+		self._is_configured: bool = False
 
-	def set_log_path(self, path: Path) -> None:
-		# TODO: path validation
-		self._log_dir = path
+	def configure(self, file_handler: FileHandler, console_handler: ConsoleHandler) -> None:
+		if self._is_configured:
+			raise RuntimeError("Logger already configured")
+
+		self._file_handler = file_handler
+		self._console_out_handler = console_handler
+
+		self._is_configured = True
+
+	# def set_log_dir(self, directory: Path) -> None:
+	# 	# TODO: path validation
+	# 	self._log_dir = directory
 
 	def log(self, event_level: EventLevel, message: str, destinations: DestinationCollection) -> None:
 		# context = _LOG_CONTEXT.get()
@@ -73,10 +83,5 @@ class Logger:
 				case 'file':
 					# self._file_handler.set_directory(self._log_dir)
 					self._file_handler.emit(e)
-				case 'stdout':
-					pass
-				case 'stderr':
-					pass
-
-	def log_warn(self, message: str) -> None:
-		self.log(EventLevel.WARN, message, {'file'})
+				case 'console':
+					self._console_out_handler.emit(e)

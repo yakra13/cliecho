@@ -6,18 +6,18 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-_LOG_CONTEXT: ContextVar[Dict[str, Any]] = ContextVar("log_context", default={})
+# _LOG_CONTEXT: ContextVar[Dict[str, Any]] = ContextVar("log_context", default={})
 
-@contextmanager
-def logging_context(**values: Any):
-    current = _LOG_CONTEXT.get()
-    new_context = {**current, **values}
+# @contextmanager
+# def logging_context(**values: Any):
+#     current = _LOG_CONTEXT.get()
+#     new_context = {**current, **values}
 
-    token = _LOG_CONTEXT.set(new_context)
-    try:
-        yield
-    finally:
-        _LOG_CONTEXT.reset(token)
+#     token = _LOG_CONTEXT.set(new_context)
+#     try:
+#         yield
+#     finally:
+#         _LOG_CONTEXT.reset(token)
 
 
 class EventLevel(Enum):
@@ -55,17 +55,17 @@ class EventLog:
     # module_options: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
-        # self.username = self.username or SystemInfo.get_system_username()
-        # self.hostname = self.hostname or SystemInfo.get_system_hostname()
+    # def __post_init__(self):
+    #     # self.username = self.username or SystemInfo.get_system_username()
+    #     # self.hostname = self.hostname or SystemInfo.get_system_hostname()
 
-        # if (ctx := _CURRENT_MODULE_CONTEXT.get()):
-        #     self.module_name = self.module_name or ctx.name
-        #     self.module_options = self.module_options or ctx.options
+    #     # if (ctx := _CURRENT_MODULE_CONTEXT.get()):
+    #     #     self.module_name = self.module_name or ctx.name
+    #     #     self.module_options = self.module_options or ctx.options
 
-        ctx = _LOG_CONTEXT.get()
-        if ctx:
-            self.metadata.update(ctx)
+    #     ctx = _LOG_CONTEXT.get()
+    #     if ctx:
+    #         self.metadata.update(ctx)
 
     def to_dict(self) -> Dict[str, Any]:
         """Converts this event into a dictionary format."""
