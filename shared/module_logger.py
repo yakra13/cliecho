@@ -25,7 +25,7 @@ from shared.ansi import AnsiStyle
 from shared.module_context import ModuleContext
 from shared.color import Color
 from shared.formatter import format_timestamp_console, format_timestamp_epoch, style_text
-from shared.util import SystemInfo #get_system_hostname, get_system_username #Color, FGColor, color_text
+from shared.util.util import SystemInfo #get_system_hostname, get_system_username #Color, FGColor, color_text
 
 # Context-local variables. Each module thread gets its own. Allows the logger to access the events
 # and module context data belonging to its specific module thread

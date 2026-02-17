@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, NamedTuple, Optional, Tuple, Union
 
 # from core.exceptions import GuardrailError
-from shared.util import MAX_UINT16, MIN_UINT16
+from shared.util.util import UINT16_MAX, UINT16_MIN
 
 class Port():
     MIN = 0
@@ -143,7 +143,7 @@ def is_in_range(min_val: Union[int, float], max_val: Union[int, float]) -> Valid
 
 def is_port(port: int) -> ValidationResult:
     # 1-65535
-    func = is_in_range(MIN_UINT16 + 1, MAX_UINT16)
+    func = is_in_range(UINT16_MIN + 1, UINT16_MAX)
     return func(port)
 
 def is_timestamp(format_str: str) -> ValidationResult:

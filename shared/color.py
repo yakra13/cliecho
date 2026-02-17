@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import ClassVar
 
-from shared.util import UINT8_MAX, UINT8_MIN, clamp, lerp
+from shared.util.util import UINT8_MAX, UINT8_MIN, clamp, lerp
 
 @dataclass(frozen=True, slots=True)
 class Color:

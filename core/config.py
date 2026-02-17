@@ -7,7 +7,7 @@ from typing import Any, Final, List, Literal, Optional
 # from shared.validation import validate_thread_count, timestamp_format
 from shared.module_logger import EventLevel
 from shared.task import TaskMessage, TaskResult
-from shared.util import SystemInfo
+from shared.util.util import SystemInfo
 from shared.validation import ValidationResult, Validator, is_directory, is_in_range, is_timestamp
 
 # from shared.module_logger import LOGGER

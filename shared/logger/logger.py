@@ -56,12 +56,11 @@ class Logger:
 		self._file_handlers: Dict[str, FileHandler] = {}
 		self._queue_handlers: Dict[int, QueueHandler] = {}
 
-		self._console_formatter: Formatter
-		self._file_formatter: Formatter
+		self._console_formatter: Formatter = ConsoleFormatter()
+		self._file_formatter: Formatter = JsonFormatter()
 		self._logging_path: Path = Path() # TODO: get logging path
 
-		self.set_console_formatter()
-		self.set_file_formatter()
+		self._metadata: Dict[str, Any] = {}
 
 	def _close_context(self, id: str) -> None:
 		with self._io_lock:
@@ -87,18 +86,12 @@ class Logger:
 	def set_file_formatter(self, formatter: Formatter = JsonFormatter()):
 		self._file_formatter = formatter
 
-	# def configure(self, file_handler: FileHandler, console_handler: ConsoleHandler) -> None:
-	# 	if self._is_configured:
-	# 		raise RuntimeError("Logger already configured")
+	def set_log_path(self, path: Path) -> None:
+		# TODO: validation
+		self._logging_path = path
 
-	# 	self._file_handler = file_handler
-	# 	self._console_out_handler = console_handler
-
-	# 	self._is_configured = True
-
-	# def set_log_dir(self, directory: Path) -> None:
-	# 	# TODO: path validation
-	# 	self._log_dir = directory
+	def set_metadata(self, **kwargs) -> None:
+		self._metadata.update(kwargs)
 
 	def log(self, event_level: EventLevel, message: str, channel: EventChannel) -> None:
 		with self._io_lock:
@@ -106,7 +99,10 @@ class Logger:
 
 			ctx = _LOG_CONTEXT.get()
 			if ctx:
+				# TODO: where to stick username and hostname info for logging to file
 				event.metadata.update(ctx)
+				# merge logger metadata into each log entry
+				event.metadata.update(self._metadata)
 
 			if channel & EventChannel.FILE:
 				ctx_id = ctx.get('id', 'default')
@@ -135,14 +131,3 @@ class Logger:
 				else:
 					# Write immediately to the console
 					self._console_out_handler.emit(event)
-
-				# e.destination = ctx.get('destination', "UNKNOWN")
-
-			# if destination == 'file':
-			# 	handler.emit(e)
-			# else:
-			# for d in destination:
-			# 	match d:
-			# 		case 'file':
-			# 			# self._file_handler.set_directory(self._log_dir)
-			# 		case 'console':

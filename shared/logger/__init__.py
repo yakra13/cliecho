@@ -1,3 +1,4 @@
+from pathlib import Path
 from .formatter import Formatter
 from .logger import Logger as _Logger
 from .logger import EventChannel, event_queue, logging_context
@@ -54,3 +55,11 @@ class LogConfig:
 	@staticmethod
 	def file_formatter(formatter: Formatter) -> None:
 		_LOG.set_file_formatter(formatter)
+
+	@staticmethod
+	def log_path(path: Path) -> None:
+		_LOG.set_log_path(path)
+
+	@staticmethod
+	def set_metadata(**kwargs) -> None:
+		_LOG.set_metadata(**kwargs)

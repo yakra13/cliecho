@@ -3,6 +3,7 @@ from typing import Any, Dict
 from logger import Log, Console, ConsoleLog, LogConfig
 from logger.logger import logging_context, event_queue
 from logger.context import ModuleContext
+from util.util  import SystemInfo
 # from logger.handler import FileHandler, ConsoleHandler
 # from logger.formatter import JsonFormatter, ConsoleFormatter
 
@@ -21,7 +22,8 @@ from logger.context import ModuleContext
 #     mod.run()
 
 
-
+LogConfig.set_metadata(current_user=SystemInfo.get_system_username(),
+					   current_host=SystemInfo.get_system_hostname())
 
 # LogConfig.console_formatter(SomeFormatter())
 mod_options: Dict[str, Any] = {
