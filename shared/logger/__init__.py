@@ -1,20 +1,56 @@
-from pathlib import Path
-from .logger import Logger
+from .formatter import Formatter
+from .logger import Logger as _Logger
+from .logger import EventChannel, event_queue, logging_context
 from .log_event import EventLevel
-from .handler import ConsoleHandler, FileHandler
+
+__all__ = [
+	"event_queue",
+	"logging_context",
+	"Console",
+	"Log",
+	"ConsoleLog"
+]
 
 # 'Singleton' instance
-_LOG = Logger()
+_LOG = _Logger()
 
 
-def configure_logger(fh: FileHandler, ch: ConsoleHandler):
-	_LOG.configure(fh, ch)
+class _Route:
+	CHANNEL: EventChannel
 
-def log_warn(message: str) -> None:
-	_LOG.log(EventLevel.WARN, message, {'file'})
+	@classmethod
+	def debug(cls, message: str) -> None:
+		_LOG.log(EventLevel.DEBUG, message, cls.CHANNEL)
 
-def console_warn(message: str) -> None:
-	_LOG.log(EventLevel.WARN, message, {'console'})
+	@classmethod
+	def error(cls, message: str) -> None:
+		_LOG.log(EventLevel.ERROR, message, cls.CHANNEL)
 
-def warn_all(self, message: str) -> None:
-	_LOG.log(EventLevel.WARN, message, {'file', 'console'})
+	@classmethod
+	def info(cls, message: str) -> None:
+		_LOG.log(EventLevel.INFO, message, cls.CHANNEL)
+
+	@classmethod
+	def warn(cls, message: str) -> None:
+		_LOG.log(EventLevel.WARN, message, cls.CHANNEL)
+
+
+class Console(_Route):
+	CHANNEL = EventChannel.CONSOLE
+
+
+class Log(_Route):
+	CHANNEL = EventChannel.FILE
+
+
+class ConsoleLog(_Route):
+	CHANNEL = EventChannel.CONSOLE | EventChannel.FILE
+
+class LogConfig:
+	@staticmethod
+	def console_formatter(formatter: Formatter) -> None:
+		_LOG.set_console_formatter(formatter)
+
+	@staticmethod
+	def file_formatter(formatter: Formatter) -> None:
+		_LOG.set_file_formatter(formatter)

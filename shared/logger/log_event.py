@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum, Flag, auto
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -19,6 +19,9 @@ from typing import Any, Dict, Optional
 #     finally:
 #         _LOG_CONTEXT.reset(token)
 
+class EventChannel(Flag):
+	FILE = auto()
+	CONSOLE = auto()
 
 class EventLevel(Enum):
     """Defines the log level of events"""
