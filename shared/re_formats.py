@@ -17,7 +17,7 @@ class ConsoleLevelFormatter(Formatter):
 		self.palette: List[Color] = palette or self._DEFAULT_PALETTE
 
 	def format(self, event: EventLog) -> str:
-		index = event.event_level.value - 1
+		index = event.level.value - 1
 		# color = self.palette.get(event.event_level, Color.White)
 		if 0 <= index < len(self.palette):
 			color = self.palette[index]

@@ -1,11 +1,11 @@
-from pathlib import Path
-from queue import Queue
 import sys
 import threading
+from pathlib import Path
+from queue import Queue
 from typing import Literal, Optional, TextIO
 
-from formatter import Formatter
-from log_event import EventLog
+from .formatter import Formatter
+from .log_event import EventLog
 
 class Handler:
 	def __init__(self, formatter: Formatter):
@@ -16,7 +16,7 @@ class Handler:
 		raise NotImplementedError
 
 	def close(self) -> None:
-		pass
+		raise NotImplementedError
 
 class QueueHandler(Handler):
 	def __init__(self, formatter: Formatter, queue: Queue):

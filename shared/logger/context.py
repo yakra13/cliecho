@@ -3,18 +3,25 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Mapping
 from uuid import uuid4
 
+from util.sanitize import sanitize_filename
+
 @dataclass
 class Context:
 	name: str
+	sanitized_name: str = field(init=False, repr=False)
 	id: str = field(init=False, repr=False)
 	# destination: str
 	# TODO: standardize/globalize timezone
 	timestamp: int = field(init=False, repr=False)
 
 	def __post_init__(self):
-          ts = int(datetime.now(timezone.utc).timestamp())
-          self.timestamp = ts
-          self.id = f"{uuid4().hex}_{ts}_{self.name}"
+        # sanitize the provided name for use in file names
+		self.sanitized_name = sanitize_filename(self.name)
+		# Generate a unique identifier from uuid, timestamp, and name
+		ts = int(datetime.now(timezone.utc).timestamp())
+		self.timestamp = ts
+
+		self.id = f"{ts}_{uuid4().hex}_{self.sanitized_name}"
 
 @dataclass
 class ModuleContext(Context):

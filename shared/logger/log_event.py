@@ -14,40 +14,29 @@ class EventLevel(Enum):
     ERROR = auto()
     DEBUG = auto()
     RAW   = auto()
-    # TODO: Special Log levels?
-    # @property
-    # def color(self) -> Optional[Color]:
-    #     mapping = {
-    #         EventLevel.INFO: Color.White,
-    #         EventLevel.WARN: Color.Yellow,
-    #         EventLevel.ERROR: Color.Red,
-    #         EventLevel.DEBUG: Color.Cyan,
-    #         EventLevel.RAW: None
-    #     }
-
-    #     return mapping.get(self, None)
 
 @dataclass
 class EventLog:
-    """Dataclass containing event log information"""
-    event_level: EventLevel
-    # event_channel: EventChannel
-    message: str
-    # destination: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc)) # TODO: standardize/globalize timezone
-    # username: Optional[str] = None # = field(default_factory=getpass.getuser)
-    # hostname: Optional[str] = None # = field(default_factory=socket.gethostname)
+	"""Dataclass containing event log information"""
+	level: EventLevel
+	message: str
 
-    # module_name: Optional[str] = None
-    # module_options: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+	# TODO: standardize/globalize timezone
+	timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Converts this event into a dictionary format."""
-        d = asdict(self)
+	metadata: Dict[str, Any] = field(default_factory=dict)
 
-        d["timestamp"]     = self.timestamp#format_timestamp_epoch(self.timestamp)
-        d["event_level"]   = self.event_level.name
-        # d["event_channel"] = self.event_channel.name
+	def merge_metadata(self, *sources: Dict) -> None:
+		for s in sources:
+			self.metadata.update(s)
 
-        return d
+	def to_dict(self) -> Dict[str, Any]:
+		"""Converts this event into a dictionary format."""
+		# TODO: this func
+		d = asdict(self)
+		
+		d["timestamp"]     = int(self.timestamp.timestamp())#format_timestamp_epoch(self.timestamp)
+		d["level"]   = self.level.name
+		# d["event_channel"] = self.event_channel.name
+		
+		return d

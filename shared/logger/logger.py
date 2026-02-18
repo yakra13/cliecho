@@ -1,20 +1,20 @@
-from enum import Flag, auto
-from queue import Queue
+# from enum import Flag, auto
 import threading
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Set
+from queue import Queue
+from typing import Any, Dict, Optional
 # from dataclasses import asdict, dataclass, field
 # from datetime import datetime, timezone
 # from enum import Enum, auto
 
-from log_event import EventLevel, EventLog, EventChannel
-from handler import FileHandler, ConsoleHandler, QueueHandler
-from context import Context, normalize_context
-from formatter import Formatter, JsonFormatter, ConsoleFormatter
+from .log_event import EventLevel, EventLog, EventChannel
+from .handler import FileHandler, ConsoleHandler, QueueHandler
+from .context import Context, normalize_context
+from .formatter import AnsiConsoleFormatter, Formatter, JsonFormatter, ConsoleFormatter, Verbosity
 
-_EVENT_QUEUE: ContextVar[Queue] = ContextVar("event_queue")
+_EVENT_QUEUE: ContextVar[Optional[Queue]] = ContextVar("event_queue", default=None)
 _LOG_CONTEXT: ContextVar[Dict[str, Any]] = ContextVar("log_context", default={})
 
 @contextmanager
@@ -39,32 +39,40 @@ def logging_context(context: Optional[Context] = None, **kwargs: Any):
 	merged.update(kwargs)
 	
 	token = _LOG_CONTEXT.set(merged)
+
 	try:
 		yield
 	finally:
+		ctx_id = merged.get("id", "default")
+		Logger._close_context(ctx_id)
 		_LOG_CONTEXT.reset(token)
 
 
 class Logger:
+	log_extension: str = ".log"
+	log_directory: Path = Path("/home/joshua.ziebarth/Documents")
+	file_formatter: Formatter = JsonFormatter()
+	file_handlers: Dict[str, FileHandler] = {}
+	_lock: threading.Lock = threading.Lock()
+
 	def __init__(self):
-		self._io_lock: threading.Lock = threading.Lock()
-		# self._log_dir: Path # TODO
-		# self._file_handler: FileHandler
-		self._console_out_handler: ConsoleHandler
-		# self._console_err_handler: ConsoleHandler
-		self._is_configured: bool = False
+		# self._lock: threading.Lock = threading.Lock()
+
+		self._console_formatter: Formatter = AnsiConsoleFormatter(verbosity=Verbosity.DEBUG)
+		self._file_formatter: Formatter = JsonFormatter()
+
+		self._console_handler: ConsoleHandler = ConsoleHandler(self._console_formatter)
 		self._file_handlers: Dict[str, FileHandler] = {}
 		self._queue_handlers: Dict[int, QueueHandler] = {}
 
-		self._console_formatter: Formatter = ConsoleFormatter()
-		self._file_formatter: Formatter = JsonFormatter()
 		self._logging_path: Path = Path() # TODO: get logging path
-
+		self._log_directory: str = '.log'
 		self._metadata: Dict[str, Any] = {}
 
-	def _close_context(self, id: str) -> None:
-		with self._io_lock:
-			handler: Optional[FileHandler] = self._file_handlers.pop(id, None)
+	@classmethod
+	def _close_context(cls, id: str) -> None:
+		with cls._lock:
+			handler: Optional[FileHandler] = cls.file_handlers.pop(id, None)
 
 			if handler is None:
 				return
@@ -75,10 +83,13 @@ class Logger:
 				pass # NOTE: optional ignore errors on close
 
 	def _create_file_handler(self, ctx: Dict[str, Any]) -> FileHandler:
-		# f = FileHandler(self._file_formatter, Path(''))
-		file_name: str = ctx.get('name', 'default')
-		full_path: Path = self._logging_path / file_name
-		return FileHandler(self._file_formatter, full_path)
+		id: str = ctx.get('id', 'default')
+		file_name: str = id + self.log_extension
+		full_path: Path = self.log_directory / file_name
+
+		handler = FileHandler(self.file_formatter, full_path)
+		self.file_handlers[id] = handler
+		return handler
 
 	def set_console_formatter(self, formatter: Formatter = ConsoleFormatter()):
 		self._console_formatter = formatter
@@ -90,19 +101,27 @@ class Logger:
 		# TODO: validation
 		self._logging_path = path
 
-	def set_metadata(self, **kwargs) -> None:
-		self._metadata.update(kwargs)
+	def get_metadata(self, key: str) -> Any:
+		return self._metadata.get(key, None)
+
+	def set_metadata(self, key: str, value: Any) -> None:
+		self._metadata.update({key: value})
+
+	def set_verbosity(self, verbosity: Verbosity) -> None:
+		# self._verbosity = verbosity
+		self._console_formatter.update_verbosity(verbosity)
 
 	def log(self, event_level: EventLevel, message: str, channel: EventChannel) -> None:
-		with self._io_lock:
+		with self._lock:
 			event = EventLog(event_level, message)
 
 			ctx = _LOG_CONTEXT.get()
 			if ctx:
+				event.merge_metadata(self._metadata, ctx)
 				# TODO: where to stick username and hostname info for logging to file
-				event.metadata.update(ctx)
+				# event.metadata.update(ctx)
 				# merge logger metadata into each log entry
-				event.metadata.update(self._metadata)
+				# event.metadata.update(self._metadata)
 
 			if channel & EventChannel.FILE:
 				ctx_id = ctx.get('id', 'default')
@@ -130,4 +149,4 @@ class Logger:
 					handler.emit(event)
 				else:
 					# Write immediately to the console
-					self._console_out_handler.emit(event)
+					self._console_handler.emit(event)

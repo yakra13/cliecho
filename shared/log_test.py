@@ -1,9 +1,12 @@
+from copy import deepcopy
 from pathlib import Path
+from time import sleep
 from typing import Any, Dict
 from logger import Log, Console, ConsoleLog, LogConfig
 from logger.logger import logging_context, event_queue
 from logger.context import ModuleContext
-from util.util  import SystemInfo
+from logger.formatter import Verbosity
+from util.system import SystemInfo
 # from logger.handler import FileHandler, ConsoleHandler
 # from logger.formatter import JsonFormatter, ConsoleFormatter
 
@@ -22,8 +25,23 @@ from util.util  import SystemInfo
 #     mod.run()
 
 
-LogConfig.set_metadata(current_user=SystemInfo.get_system_username(),
-					   current_host=SystemInfo.get_system_hostname())
+# LogConfig.set_metadata(current_user=SystemInfo.get_system_username(),
+# 					   current_host=SystemInfo.get_system_hostname())
+
+
+LogConfig.metadata.current_user = SystemInfo.get_system_username()
+LogConfig.metadata.current_host = SystemInfo.get_system_hostname()
+LogConfig.metadata.custom = 5
+LogConfig.metadata.whatever_you_want = "some value"
+
+
+val = LogConfig.metadata.current_user
+# LogConfig.file_formatter = JsonFormatter()
+LogConfig.log_directory = Path("/home/joshua.ziebarth/Documents")
+val2 = LogConfig.log_directory
+LogConfig.verbosity = Verbosity.DEBUG
+print(val)
+print(val2)
 
 # LogConfig.console_formatter(SomeFormatter())
 mod_options: Dict[str, Any] = {
@@ -31,11 +49,14 @@ mod_options: Dict[str, Any] = {
 	'b': '2',
 	'c': '3'
 	}
-context: ModuleContext = ModuleContext("Some Name", mod_options)
+context: ModuleContext = ModuleContext("Some_Name", mod_options)
 
 with logging_context(context):
 	Console.info("just to the console")
 	Log.warn("just to the log file")
+	sleep(1)
+	Console.warn("console warning")
+	Console.debug("console debug message")
 	ConsoleLog.error("To both at the same time")
 	#mod.run() # execute
 
