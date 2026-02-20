@@ -2,7 +2,7 @@ import configparser
 from dataclasses import dataclass, field, fields
 # from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Final, List, Optional
+from typing import Any, Callable, ClassVar, Dict, Final, List, Optional, Type, get_type_hints
 
 # from shared.validation import validate_thread_count, timestamp_format
 from shared.module_logger import EventLevel
@@ -25,11 +25,16 @@ _TYPE_MAP: Final[Dict[type, str]] = {
     str:   'get',
 }
 
+ConverterFn = Callable[["BaseConfig", str], Any]
+ValidatorFn = Callable[["BaseConfig", str, Any], Any]
+
 @dataclass
 class BaseConfig:
     _DEFAULT_SECTION: ClassVar[str] = "SETTINGS"
+    _converter_registry: ClassVar[Dict[Type, ConverterFn]] = {}
+    _validator_registry: ClassVar[Dict[str, list[ValidatorFn]]]
     
-    _config_errors: List[str] = []
+    _config_errors: List[str] = field(default_factory=list)
     _frozen: bool = False
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -37,6 +42,39 @@ class BaseConfig:
             raise AttributeError( f"{self.__class__.__name__} is immutable after initialization")
 
         super().__setattr__(name, value)
+
+    def _convert(self, value: str, value_type: Type[Any]) -> Any:
+        converter = self._converter_registry.get(value_type, None)
+        if converter:
+            return converter(self, value)
+
+        return value_type(value)
+
+    def _validate(self, field: str, value: Any) -> Any:
+        validators = self._validator_registry.get(field, [])
+
+        for v in validators:
+            value = v(self, field, value)
+
+        return value
+
+    def _freeze(self) -> None:
+        self._frozen = True
+
+    @classmethod
+    def register_converter(cls, conv_type: type, fn: ConverterFn) -> None:
+        # Ensure subclass get its own registry
+        if "_converter_registry" not in cls.__dict__:
+            cls._converter_registry = dict(cls._converter_registry)
+
+        cls._converter_registry[conv_type] = fn
+
+    @classmethod
+    def register_validator(cls, field: str, fn: ValidatorFn) -> None:
+        if "_validator_registry" not in cls.__dict__:
+            cls._validator_registry = dict(cls._validator_registry)
+
+        cls._validator_registry.setdefault(field, []).append(fn)
 
     def load(self, path: Path) -> None:
         # def load_config_task(self, config_path: Path = DEFAULT_CONFIG_FILE) -> TaskResult:
@@ -46,25 +84,32 @@ class BaseConfig:
         # if self._initialized:
             # return TaskResult(True, [TaskMessage(EventLevel.INFO, "Already initialized")])
 
-        type_mapping = {
-            int: 'getint',
-            bool: 'getboolean',
-            float: 'getfloat',
-            str: 'get',
-            Path: 'get'
-        }
+        # type_mapping = {
+        #     int: 'getint',
+        #     bool: 'getboolean',
+        #     float: 'getfloat',
+        #     str: 'get',
+        #     Path: 'get'
+        # }
 
         parser = configparser.ConfigParser(interpolation=None)
 
         parser.read(path)
 
-        if not parser.has_section(self._DEFAULT_SECTION):
-            
+        section = self._DEFAULT_SECTION
 
-        if self._DEFAULT_SECTION not in parser:
-            self._config_errors.append(TaskMessage(EventLevel.ERROR,
-                f"Required '[{self._DEFAULT_SECTION}]' section label not found."))
-            return TaskResult(False, self._config_errors)
+        if not parser.has_section(section):
+            self._config_errors.append(f"Missing section: [{section}]")
+            self._freeze()
+            return
+
+        # if self._DEFAULT_SECTION not in parser:
+        #     self._config_errors.append(TaskMessage(EventLevel.ERROR,
+        #         f"Required '[{self._DEFAULT_SECTION}]' section label not found."))
+        #     return TaskResult(False, self._config_errors)
+
+        data = parser[section]
+        hints = get_type_hints(self.__class__)
 
         for f in fields(self):
             # Skip private and protected variables
@@ -72,71 +117,129 @@ class BaseConfig:
                 continue
 
             # Skip fields that are not in the config file
-            if not f.name in parser[self._DEFAULT_SECTION]:
+            if f.name not in data:
                 continue
 
-            # Determine the getter function based of var type, default to string
-            getter_name = type_mapping.get(f.type, "get")
-            getter = getattr(parser, getter_name)
+            raw_value = data[f.name]
 
             try:
-                # Get the value with the appropriate getter
-                # Throws ValueError if type doesn't match getter
-                value = getter(self._DEFAULT_SECTION, f.name)
+                value = self._convert(raw_value, hints[f.name])
+                value = self._validate(f.name, value)
+                super().__setattr__(f.name, value)
+            except Exception as e:
+                self._config_errors.append(f"{f.name}: {e}")
 
-                # Handle special conversions
-                match f.type:
-                    case type_ if type_ is Path:
-                        # Handle relative and absolute paths
-                        # Possible exceptions OSError/RuntimeError
-                        value = (APP_ROOT_DIR / value).resolve()
+            self._freeze()
 
-            except ValueError:
-                # Type validation
-                r = parser.get(self._DEFAULT_SECTION, f.name)
-                t = str(f.type).split('.')[-1].replace("'>", "")
+        #     # Determine the getter function based of var type, default to string
+        #     getter_name = type_mapping.get(f.type, "get")
+        #     getter = getattr(parser, getter_name)
 
-                self._config_errors.append(TaskMessage(EventLevel.WARN,
-                    f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}"))
+        #     try:
+        #         # Get the value with the appropriate getter
+        #         # Throws ValueError if type doesn't match getter
+        #         value = getter(self._DEFAULT_SECTION, f.name)
 
-            except (OSError, RuntimeError) as e:
-                r = parser.get(self._DEFAULT_SECTION, f.name)
+        #         # Handle special conversions
+        #         match f.type:
+        #             case type_ if type_ is Path:
+        #                 # Handle relative and absolute paths
+        #                 # Possible exceptions OSError/RuntimeError
+        #                 value = (APP_ROOT_DIR / value).resolve()
 
-                self._config_errors.append(TaskMessage(EventLevel.WARN,
-                    f"Path '{r}' is invalid: {e} using default: {f.default}"))
+        #     except ValueError:
+        #         # Type validation
+        #         r = parser.get(self._DEFAULT_SECTION, f.name)
+        #         t = str(f.type).split('.')[-1].replace("'>", "")
 
-            else:
-                # Perform validation
-                validator: Optional[Validator] = f.metadata.get('validator')
+        #         self._config_errors.append(TaskMessage(EventLevel.WARN,
+        #             f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}"))
 
-                error: Optional[str] = None
+        #     except (OSError, RuntimeError) as e:
+        #         r = parser.get(self._DEFAULT_SECTION, f.name)
 
-                if value is None:
-                    # Should be caught in the ValueError except
-                    error = f"{f.metadata.get('error', '')}"
-                elif validator:
-                    result: ValidationResult = validator(value)
+        #         self._config_errors.append(TaskMessage(EventLevel.WARN,
+        #             f"Path '{r}' is invalid: {e} using default: {f.default}"))
 
-                    if result.error:
-                        error = result.error
-                    elif not result.is_valid:
-                        error = f"{f.metadata.get('error', '')}"
+        #     else:
+        #         # Perform validation
+        #         validator: Optional[Validator] = f.metadata.get('validator')
 
-                if error:
-                    self._config_errors.append(TaskMessage(EventLevel.WARN,
-                        f"Invalid value '{f.name}': {value}; {error}; using default: {f.default}"))
-                else:
-                    # Set the value
-                    setattr(self, f.name, value)
+        #         error: Optional[str] = None
 
-        # Denote that default settings have been loaded
-        self._initialized = True
-        if err_count := len(self._config_errors) > 0:
-            err_task_msg = TaskMessage(EventLevel.ERROR, 
-                f"{err_count} error{'s' if err_count > 1 else ''} detected in configuration.")
-            self._config_errors.insert(0, err_task_msg)
+        #         if value is None:
+        #             # Should be caught in the ValueError except
+        #             error = f"{f.metadata.get('error', '')}"
+        #         elif validator:
+        #             result: ValidationResult = validator(value)
 
-        return TaskResult(True, self._config_errors)
+        #             if result.error:
+        #                 error = result.error
+        #             elif not result.is_valid:
+        #                 error = f"{f.metadata.get('error', '')}"
+
+        #         if error:
+        #             self._config_errors.append(TaskMessage(EventLevel.WARN,
+        #                 f"Invalid value '{f.name}': {value}; {error}; using default: {f.default}"))
+        #         else:
+        #             # Set the value
+        #             setattr(self, f.name, value)
+
+        # # Denote that default settings have been loaded
+        # self._initialized = True
+        # if err_count := len(self._config_errors) > 0:
+        #     err_task_msg = TaskMessage(EventLevel.ERROR, 
+        #         f"{err_count} error{'s' if err_count > 1 else ''} detected in configuration.")
+        #     self._config_errors.insert(0, err_task_msg)
+
+        # return TaskResult(True, self._config_errors)
+
+def _convert_bool(_: BaseConfig, value: str) -> bool:
+    v = value.strip().lower()
+    
+    if v in {"1", "true", "yes", "on"}:
+        return True
+    
+    if v in {"0", "false", "no", "off"}:
+        return False
+    
+    raise ValueError(f"Invalid boolean: {value}")
+
+# Register default converters and validators
+BaseConfig.register_converter(bool, _convert_bool)
+
+
+@dataclass
+class RedEchoConfig(BaseConfig):
+    modules_path: Path = APP_ROOT_DIR / "modules"
+    presets_path: Path = APP_ROOT_DIR / "presets"
+    logs_path: Path = APP_ROOT_DIR / "logs"
+
+    output_path: Path = APP_ROOT_DIR / "output"
+
+    extracted_path: Path = APP_ROOT_DIR / ".extracted"
+
+    guardrails_path: Path = APP_ROOT_DIR / "guardrails"
+
+    verbosity: Verbosity = 1
+
+    timestamp_format: str = field(
+        default="%Y-%m-%d %H:%M:%S",
+        metadata={'validator': is_timestamp})
+
+    enable_ansi: bool       = True
+
+    enable_guardrails: bool = True
+
+    enable_threading: bool  = True
+
+    enable_duplicate_module_threads: bool = False # Run multiple threads of the same module
+
+    max_thread_count: int   = field(
+        default=0,
+        metadata={'validator': is_in_range(0, SystemInfo.get_system_max_threads()),
+        'error': f"Valid range 0 - {SystemInfo.get_system_max_threads()}"}) # 0 = automatic
+
 
 @dataclass
 class AppConfig():
