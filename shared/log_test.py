@@ -54,7 +54,7 @@ context: ModuleContext = ModuleContext("Some_Name", mod_options)
 with logging_context(context):
 	Console.info("just to the console")
 	Log.warn("just to the log file")
-	sleep(1)
+	sleep(2)
 	Console.warn("console warning")
 	Console.debug("console debug message")
 	ConsoleLog.error("To both at the same time")

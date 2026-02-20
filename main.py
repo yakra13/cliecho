@@ -7,17 +7,17 @@ TODO: docstring
 # from queue import Empty, Queue
 # from typing import List
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, NamedTuple, Optional
+# from dataclasses import dataclass, field
+from typing import List
 from core.cli_manager import CLIManager
 from core.completer import Completer
 # from core.dispatcher import Dispatcher
 # from core.events import InputClosed, UserInterrupt
 from core.module_loader import ModuleLoader
-from shared.ansi import AnsiStyle
-from shared.color import Color, lerp_color
+from shared.text.ansi import AnsiStyle
+from shared.text.color import Color, lerp_color
 from shared.formatter import style_text
-from shared.log_types import EventLevel
+# from shared.logger import EventLevel
 from shared.module_logger import LOGGER
 from core.config import CONFIG
 from shared.task import Task

@@ -12,7 +12,7 @@ class Verbosity(IntEnum):
 
 class Formatter:
 	def __init__(self, verbosity: Verbosity = Verbosity.NORMAL):
-		self._verbosity = verbosity
+		self._verbosity: Verbosity = verbosity
 
 	def update_verbosity(self, verbosity: Verbosity) -> None:
 		self._verbosity = verbosity
