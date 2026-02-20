@@ -2,12 +2,12 @@ import configparser
 from dataclasses import dataclass, field, fields
 # from datetime import datetime
 from pathlib import Path
-from typing import Any, Final, List, Literal, Optional
+from typing import Any, ClassVar, Dict, Final, List, Optional
 
 # from shared.validation import validate_thread_count, timestamp_format
 from shared.module_logger import EventLevel
 from shared.task import TaskMessage, TaskResult
-from shared.util.util import SystemInfo
+from shared.util.system import SystemInfo
 from shared.validation import ValidationResult, Validator, is_directory, is_in_range, is_timestamp
 
 # from shared.module_logger import LOGGER
@@ -15,6 +15,128 @@ from shared.validation import ValidationResult, Validator, is_directory, is_in_r
 APP_ROOT_DIR: Final[Path]        = Path(__file__).resolve().parent
 CONFIG_PATH: Final[Path]         = APP_ROOT_DIR / "config"
 DEFAULT_CONFIG_FILE: Final[Path] = CONFIG_PATH / "redecho.config"
+
+
+_TYPE_MAP: Final[Dict[type, str]] = {
+    bool:  'getboolean',
+    float: 'getfloat',
+    int:   'getint',
+    Path:  'get',
+    str:   'get',
+}
+
+@dataclass
+class BaseConfig:
+    _DEFAULT_SECTION: ClassVar[str] = "SETTINGS"
+    
+    _config_errors: List[str] = []
+    _frozen: bool = False
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if getattr(self, "_frozen", False) and not name.startswith("_"):
+            raise AttributeError( f"{self.__class__.__name__} is immutable after initialization")
+
+        super().__setattr__(name, value)
+
+    def load(self, path: Path) -> None:
+        # def load_config_task(self, config_path: Path = DEFAULT_CONFIG_FILE) -> TaskResult:
+        # Prevent reloading config settings
+        # TODO: may want to allow some settings to be changed during run
+
+        # if self._initialized:
+            # return TaskResult(True, [TaskMessage(EventLevel.INFO, "Already initialized")])
+
+        type_mapping = {
+            int: 'getint',
+            bool: 'getboolean',
+            float: 'getfloat',
+            str: 'get',
+            Path: 'get'
+        }
+
+        parser = configparser.ConfigParser(interpolation=None)
+
+        parser.read(path)
+
+        if not parser.has_section(self._DEFAULT_SECTION):
+            
+
+        if self._DEFAULT_SECTION not in parser:
+            self._config_errors.append(TaskMessage(EventLevel.ERROR,
+                f"Required '[{self._DEFAULT_SECTION}]' section label not found."))
+            return TaskResult(False, self._config_errors)
+
+        for f in fields(self):
+            # Skip private and protected variables
+            if f.name.startswith('_'):
+                continue
+
+            # Skip fields that are not in the config file
+            if not f.name in parser[self._DEFAULT_SECTION]:
+                continue
+
+            # Determine the getter function based of var type, default to string
+            getter_name = type_mapping.get(f.type, "get")
+            getter = getattr(parser, getter_name)
+
+            try:
+                # Get the value with the appropriate getter
+                # Throws ValueError if type doesn't match getter
+                value = getter(self._DEFAULT_SECTION, f.name)
+
+                # Handle special conversions
+                match f.type:
+                    case type_ if type_ is Path:
+                        # Handle relative and absolute paths
+                        # Possible exceptions OSError/RuntimeError
+                        value = (APP_ROOT_DIR / value).resolve()
+
+            except ValueError:
+                # Type validation
+                r = parser.get(self._DEFAULT_SECTION, f.name)
+                t = str(f.type).split('.')[-1].replace("'>", "")
+
+                self._config_errors.append(TaskMessage(EventLevel.WARN,
+                    f"Invalid {t} for '{f.name}': '{r}' using default: {f.default}"))
+
+            except (OSError, RuntimeError) as e:
+                r = parser.get(self._DEFAULT_SECTION, f.name)
+
+                self._config_errors.append(TaskMessage(EventLevel.WARN,
+                    f"Path '{r}' is invalid: {e} using default: {f.default}"))
+
+            else:
+                # Perform validation
+                validator: Optional[Validator] = f.metadata.get('validator')
+
+                error: Optional[str] = None
+
+                if value is None:
+                    # Should be caught in the ValueError except
+                    error = f"{f.metadata.get('error', '')}"
+                elif validator:
+                    result: ValidationResult = validator(value)
+
+                    if result.error:
+                        error = result.error
+                    elif not result.is_valid:
+                        error = f"{f.metadata.get('error', '')}"
+
+                if error:
+                    self._config_errors.append(TaskMessage(EventLevel.WARN,
+                        f"Invalid value '{f.name}': {value}; {error}; using default: {f.default}"))
+                else:
+                    # Set the value
+                    setattr(self, f.name, value)
+
+        # Denote that default settings have been loaded
+        self._initialized = True
+        if err_count := len(self._config_errors) > 0:
+            err_task_msg = TaskMessage(EventLevel.ERROR, 
+                f"{err_count} error{'s' if err_count > 1 else ''} detected in configuration.")
+            self._config_errors.insert(0, err_task_msg)
+
+        return TaskResult(True, self._config_errors)
 
 @dataclass
 class AppConfig():
