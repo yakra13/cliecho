@@ -35,6 +35,10 @@ DEFAULT_CONFIG_FILE: Final[Path] = CONFIG_PATH / "redecho.config"
 
 @dataclass
 class BaseConfig:
+	""" 
+	TODO: docstring
+	blah blah
+	"""
 	_field_map: ClassVar[Dict[str, Field]]
 
 	_DEFAULT_SECTION: ClassVar[str] = "SETTINGS"
@@ -50,7 +54,7 @@ class BaseConfig:
 
 		if "_converter_registry" not in cls.__dict__:
 			cls._converter_registry = dict(cls._converter_registry)
-		
+
 		cls._converter_registry.update(default_converters)
 
 	def __post_init__(self):
@@ -70,6 +74,7 @@ class BaseConfig:
 
 	@classmethod
 	def register_converter(cls, conv_type: type, fn: ConverterFn) -> None:
+		""" """
 		# Ensure subclass get its own registry
 		if "_converter_registry" not in cls.__dict__:
 			cls._converter_registry = dict(cls._converter_registry)
