@@ -1,0 +1,9 @@
+# Listener.accept()
+#         ↓
+# TCPTransport(socket)
+#         ↓
+# Session(transport)
+#         ↓
+# ShellAdapter
+#         ↓
+# CLI
