@@ -1,14 +1,14 @@
 import socks # pip install PySocks
 import socket
 
-s = socks.socksocket()
-# cobalt strike -> socks 1080
-teamserver_ip = "10.0.0.5"
-teamserver_socks_port = 1080
-proxy_type = socks.SOCKS4 # maybe socks5
-s.set_proxy(proxy_type, teamserver_ip, teamserver_socks_port, rdns=True) # rdns=True -> resolve dns on beacon side
-# make connection
-s.connect(("example.com", 80))
+# s = socks.socksocket()
+# # cobalt strike -> socks 1080
+# teamserver_ip = "10.0.0.5"
+# teamserver_socks_port = 1080
+# proxy_type = socks.SOCKS4 # maybe socks5
+# s.set_proxy(proxy_type, teamserver_ip, teamserver_socks_port, rdns=True) # rdns=True -> resolve dns on beacon side
+# # make connection
+# s.connect(("example.com", 80))
 
 
 from dataclasses import dataclass
