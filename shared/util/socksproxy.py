@@ -96,3 +96,45 @@ with proxy_context(ProxyConfig(True, "10.0.0.5", 1080)):
 
 #     finally:
 #         socket.socket = original_socket  # restore
+
+
+# import socks
+# import socket
+
+# def check_socks_proxy(host: str, port: int, timeout: float = 3.0) -> bool:
+#     try:
+#         s = socks.socksocket()
+#         s.set_proxy(socks.SOCKS4, host, port, rdns=True)
+
+#         s.settimeout(timeout)
+
+#         # Try connecting to something simple
+#         s.connect(("1.1.1.1", 80))  # or any reliable target
+
+#         s.close()
+#         return True
+
+#     except Exception:
+#         return False
+
+# def check_proxy_port_only(host: str, port: int, timeout: float = 2.0) -> bool:
+#     try:
+#         with socket.create_connection((host, port), timeout=timeout):
+#             return True
+#     except OSError:
+#         return False
+    
+import socket
+from contextlib import closing
+
+# check correct port when setting proxy or call before running the tool in the with statement
+def check_socks_port(host: str, port: int, timeout: float = 2.0) -> bool:
+    """
+    Quick sanity check that the host:port is listening for a SOCKS connection.
+    Does NOT touch the internal network behind the proxy.
+    """
+    try:
+        with closing(socket.create_connection((host, port), timeout=timeout)):
+            return True
+    except OSError:
+        return False
